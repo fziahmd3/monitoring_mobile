@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:monitoring_hafalan_app/screens/login_screen.dart'; // Import layar login
 
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 

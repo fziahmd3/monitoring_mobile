@@ -43,8 +43,8 @@ class _PredictionFormScreenState extends State<PredictionFormScreen> {
       return;
     }
 
-    // final apiUrl = 'http://10.95.121.11:5000/api/predict'; // Ubah ke /api/predict
-    final apiUrl = 'http://192.18.20.236:5000/api/predict';
+    final apiUrl = 'http://10.95.121.11:5000/api/predict'; // Ubah ke /api/predict
+    // final apiUrl = 'http://192.18.20.236:5000/api/predict';
 
     try {
       final response = await http.post(

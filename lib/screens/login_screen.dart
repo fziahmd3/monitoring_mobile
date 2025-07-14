@@ -61,7 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // final String apiUrl = 'http://192.18.20.234:5000/api/login';
+    // final String apiUrl = 'http://192.18.20.236:5000/api/login';
     final String apiUrl = 'http://10.95.121.11:5000/api/login';
 
     Map<String, String> requestBody = {

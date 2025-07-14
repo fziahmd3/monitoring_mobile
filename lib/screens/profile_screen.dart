@@ -40,8 +40,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     String apiUrl = '';
     if (widget.userType == 'Santri') {
-      // apiUrl = 'http://10.95.121.11:5000/api/santri_profile/${widget.credential}';
-      apiUrl = 'http://192.18.20.236:5000/api/santri_profile/${widget.credential}';
+      apiUrl = 'http://10.95.121.11:5000/api/santri_profile/${widget.credential}';
+      // apiUrl = 'http://192.18.20.236:5000/api/santri_profile/${widget.credential}';
     } else if (widget.userType == 'Guru') {
       // TODO: Implement API for Guru profile when data is available
       _errorMessage = 'Profil Guru belum tersedia.';
@@ -92,8 +92,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _isLoadingPredictions = true;
     });
 
-    // final String apiUrl = 'http://10.95.121.11:5000/api/santri/${widget.credential}/predictions';
-    final String apiUrl = 'http://192.18.20.236:5000/api/santri/${widget.credential}/predictions';
+    final String apiUrl = 'http://10.95.121.11:5000/api/santri/${widget.credential}/predictions';
+    // final String apiUrl = 'http://192.18.20.236:5000/api/santri/${widget.credential}/predictions';
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -154,46 +154,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
             if (widget.userType == 'Santri' && _profileData != null)
               Column(
                 children: [
-                  ProfileMenu(text: "Nama Lengkap: ${_profileData!['nama_lengkap']}", icon: "assets/icons/User Icon.svg", press: () {}),
-                  ProfileMenu(text: "NIS: ${_profileData!['nis']}", icon: "assets/icons/User Icon.svg", press: () {}),
-                  ProfileMenu(text: "Kelas: ${_profileData!['kelas']}", icon: "assets/icons/User Icon.svg", press: () {}),
-                  ProfileMenu(text: "Alamat: ${_profileData!['alamat']}", icon: "assets/icons/User Icon.svg", press: () {}),
-                  ProfileMenu(text: "Nama Orang Tua: ${_profileData!['nama_orang_tua']}", icon: "assets/icons/User Icon.svg", press: () {}),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Riwayat Prediksi Hafalan',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  _isLoadingPredictions
-                      ? const CircularProgressIndicator() // Show loading indicator for predictions
-                      : (_predictionResults == null || _predictionResults!.isEmpty)
-                          ? const Text('Tidak ada riwayat prediksi.')
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _predictionResults!.length,
-                              itemBuilder: (context, index) {
-                                final prediction = _predictionResults![index];
-                                return Card(
-                                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                                  elevation: 2,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(16.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('Tanggal: ${prediction['predicted_at'] != null ? prediction['predicted_at'].split('T')[0] : 'N/A'}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                        Text('Tingkat Hafalan: ${prediction['tingkat_hafalan']}'),
-                                        Text('Jumlah Setoran: ${prediction['jumlah_setoran']}'),
-                                        Text('Kehadiran: ${prediction['kehadiran']}%'),
-                                        Text('Hasil Prediksi: ${prediction['hasil_prediksi']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
+                  ProfileMenu(
+                    text: "Profil",
+                    icon: "assets/icons/User Icon.svg",
+                    press: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return AlertDialog(
+                            title: const Text('Detail Santri'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Nama Lengkap: "+(_profileData!["nama_lengkap"] ?? "")),
+                                Text("NIS: "+(_profileData!["nis"] ?? "")),
+                                Text("Kelas: "+(_profileData!["kelas"] ?? "")),
+                                Text("Alamat: "+(_profileData!["alamat"] ?? "")),
+                              ],
                             ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('Tutup'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  ProfileMenu(
+                    text: "Lihat Hasil Prediksi",
+                    icon: "assets/icons/Chart.svg",
+                    press: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return AlertDialog(
+                            title: const Text('Riwayat Prediksi Hafalan'),
+                            content: _isLoadingPredictions
+                                ? const SizedBox(height: 60, child: Center(child: CircularProgressIndicator()))
+                                : (_predictionResults == null || _predictionResults!.isEmpty)
+                                    ? const Text('Tidak ada riwayat prediksi.')
+                                    : SizedBox(
+                                        width: 300,
+                                        child: ListView.builder(
+                                          shrinkWrap: true,
+                                          itemCount: _predictionResults!.length,
+                                          itemBuilder: (context, index) {
+                                            final prediction = _predictionResults![index];
+                                            return Padding(
+                                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text('Tanggal: ${prediction['predicted_at'] != null ? prediction['predicted_at'].split('T')[0] : 'N/A'}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                  Text('Tingkat Hafalan: ${prediction['tingkat_hafalan']}'),
+                                                  Text('Jumlah Setoran: ${prediction['jumlah_setoran']}'),
+                                                  Text('Kehadiran: ${prediction['kehadiran']}%'),
+                                                  Text('Hasil Prediksi: ${prediction['hasil_prediksi']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('Tutup'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ],
               )
             else if (widget.userType == 'Guru' || widget.userType == 'Orang Tua Santri')
@@ -259,8 +296,8 @@ class _ProfilePicState extends State<ProfilePic> {
   }
 
   Future<void> _uploadImage(File image) async {
-    // final uri = Uri.parse('http://10.95.121.11:5000/api/upload_profile_picture');
-    final uri = Uri.parse('http://192.18.20.236:5000/api/upload_profile_picture');
+    final uri = Uri.parse('http://10.95.121.11:5000/api/upload_profile_picture');
+    // final uri = Uri.parse('http://192.18.20.236:5000/api/upload_profile_picture');
     final request = http.MultipartRequest('POST', uri)
       ..fields['user_type'] = widget.userType
       ..fields['credential'] = widget.credential
@@ -287,10 +324,10 @@ class _ProfilePicState extends State<ProfilePic> {
   @override
   Widget build(BuildContext context) {
     String imageUrl = widget.currentImageUrl != null && widget.currentImageUrl!.isNotEmpty
-        // ? 'http://10.95.121.11:5000/static/profile_pics/${widget.currentImageUrl}' // Full URL for server image
-        // : "https://i.postimg.cc/0jqKB6mS/Profile-Image.png"; // Default image
-        ? 'http://192.18.20.236:5000/static/profile_pics/${widget.currentImageUrl}' // Full URL for server image
+        ? 'http://10.95.121.11:5000/static/profile_pics/${widget.currentImageUrl}' // Full URL for server image
         : "https://i.postimg.cc/0jqKB6mS/Profile-Image.png"; // Default image
+        // ? 'http://192.18.20.236:5000/static/profile_pics/${widget.currentImageUrl}' // Full URL for server image
+        // : "https://i.postimg.cc/0jqKB6mS/Profile-Image.png"; // Default image
 
     return SizedBox(
       height: 115,
