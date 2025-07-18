@@ -19,9 +19,28 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _profileData;
   List<dynamic>? _predictionResults; // New state variable for prediction results
+  List<dynamic>? _penilaianResults; // State untuk riwayat penilaian hafalan
   String? _errorMessage;
   bool _isLoading = true;
   bool _isLoadingPredictions = false; // New loading state for predictions
+  bool _isLoadingPenilaian = false; // Loading state untuk penilaian
+  String? _selectedSuratFilter;
+  final List<String> _daftarSurat = [
+    'Semua',
+    'Al-Fatihah', 'Al-Baqarah', 'Ali Imran', 'An-Nisa', 'Al-Maidah',
+    'Al-Anam', 'Al-Araf', 'Al-Anfal', 'At-Taubah', 'Yunus',
+    'Hud', 'Yusuf', 'Ar-Ra’d', 'Ibrahim', 'Al-Hijr', 'An-Nahl', 'Al-Isra’', 'Al-Kahfi', 'Maryam', 'Ta-Ha',
+    'Al-Anbiya’', 'Al-Hajj', 'Al-Mu’minun', 'An-Nur', 'Al-Furqan', 'Ash-Shu’ara’', 'An-Naml', 'Al-Qasas', 'Al-Ankabut', 'Ar-Rum',
+    'Luqman', 'As-Sajda', 'Al-Ahzab', 'Saba’', 'Fatir', 'Ya-Sin', 'As-Saffat', 'Sad', 'Az-Zumar', 'Ghafir',
+    'Fussilat', 'Ash-Shura', 'Az-Zukhruf', 'Ad-Dukhan', 'Al-Jathiyah', 'Al-Ahqaf', 'Muhammad', 'Al-Fath', 'Al-Hujurat', 'Qaf',
+    'Adh-Dhariyat', 'At-Tur', 'An-Najm', 'Al-Qamar', 'Ar-Rahman', 'Al-Waqi’ah', 'Al-Hadid', 'Al-Mujadila', 'Al-Hashr', 'Al-Mumtahanah',
+    'As-Saff', 'Al-Jumu’ah', 'Al-Munafiqun', 'At-Taghabun', 'At-Talaq', 'At-Tahrim', 'Al-Mulk', 'Al-Qalam', 'Al-Haqqah', 'Al-Ma’arij',
+    'Nuh', 'Al-Jinn', 'Al-Muzzammil', 'Al-Muddathir', 'Al-Qiyamah', 'Al-Insan', 'Al-Mursalat', 'An-Naba’', 'An-Nazi’at', 'Abasa',
+    'At-Takwir', 'Al-Infitar', 'Al-Mutaffifin', 'Al-Inshiqaq', 'Al-Buruj', 'At-Tariq', 'Al-A’la', 'Al-Ghashiyah', 'Al-Fajr', 'Al-Balad',
+    'Ash-Shams', 'Al-Lail', 'Ad-Duha', 'Ash-Sharh', 'At-Tin', 'Al-‘Alaq', 'Al-Qadr', 'Al-Bayyinah', 'Az-Zalzalah', 'Al-‘Adiyat',
+    'Al-Qari’ah', 'At-Takathur', 'Al-Asr', 'Al-Humazah', 'Al-Fil', 'Quraysh', 'Al-Ma’un', 'Al-Kawthar', 'Al-Kafirun', 'An-Nasr',
+    'Al-Masad', 'Al-Ikhlas', 'Al-Falaq', 'An-Nas',
+  ];
 
   @override
   void initState() {
@@ -29,6 +48,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _fetchProfileData();
     if (widget.userType == 'Santri') {
       _fetchPredictionResults();
+      _fetchPenilaianResults();
     }
   }
 
@@ -40,18 +60,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     String apiUrl = '';
     if (widget.userType == 'Santri') {
-      apiUrl = 'http://10.95.121.11:5000/api/santri_profile/${widget.credential}';
+      apiUrl = 'http://10.123.201.11:5000/api/santri_profile/${widget.credential}';
       // apiUrl = 'http://192.18.20.236:5000/api/santri_profile/${widget.credential}';
     } else if (widget.userType == 'Guru') {
-      // TODO: Implement API for Guru profile when data is available
-      _errorMessage = 'Profil Guru belum tersedia.';
-      _isLoading = false;
-      return;
+      apiUrl = 'http://10.123.201.11:5000/api/guru_profile/${widget.credential}';
     } else if (widget.userType == 'Orang Tua Santri') {
-      // TODO: Implement API for Orang Tua Santri profile when data is available
-      _errorMessage = 'Profil Orang Tua Santri belum tersedia.';
-      _isLoading = false;
-      return;
+      apiUrl = 'http://10.123.201.11:5000/api/orangtua_profile/${widget.credential}';
     }
 
     if (apiUrl.isEmpty) {
@@ -92,7 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _isLoadingPredictions = true;
     });
 
-    final String apiUrl = 'http://10.95.121.11:5000/api/santri/${widget.credential}/predictions';
+    final String apiUrl = 'http://10.123.201.11:5000/api/santri/${widget.credential}/predictions';
     // final String apiUrl = 'http://192.18.20.236:5000/api/santri/${widget.credential}/predictions';
 
     try {
@@ -111,6 +125,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } finally {
       setState(() {
         _isLoadingPredictions = false;
+      });
+    }
+  }
+
+  Future<void> _fetchPenilaianResults() async {
+    setState(() {
+      _isLoadingPenilaian = true;
+    });
+    final String apiUrl = 'http://10.123.201.11:5000/api/santri/${widget.credential}/penilaian';
+    try {
+      final response = await http.get(Uri.parse(apiUrl));
+      if (response.statusCode == 200) {
+        setState(() {
+          _penilaianResults = jsonDecode(response.body);
+        });
+      }
+    } catch (e) {
+      // ignore error
+    } finally {
+      setState(() {
+        _isLoadingPenilaian = false;
       });
     }
   }
@@ -231,6 +266,151 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     },
                   ),
+                  ProfileMenu(
+                    text: "Lihat Riwayat Penilaian Hafalan",
+                    icon: "assets/icons/Chart.svg",
+                    press: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          final filteredPenilaian = _selectedSuratFilter == null || _selectedSuratFilter == 'Semua'
+                              ? _penilaianResults
+                              : _penilaianResults?.where((p) => p['surat'] == _selectedSuratFilter).toList();
+                          return StatefulBuilder(
+                            builder: (context, setState) {
+                              return AlertDialog(
+                                title: const Text('Riwayat Penilaian Hafalan'),
+                                content: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      DropdownButtonFormField<String>(
+                                        decoration: const InputDecoration(
+                                          labelText: 'Filter Surat',
+                                          border: OutlineInputBorder(),
+                                        ),
+                                        value: _selectedSuratFilter ?? 'Semua',
+                                        items: _daftarSurat.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                                        onChanged: (val) {
+                                          setState(() {
+                                            _selectedSuratFilter = val;
+                                          });
+                                        },
+                                      ),
+                                      const SizedBox(height: 15),
+                                      _isLoadingPenilaian
+                                          ? const SizedBox(height: 60, child: Center(child: CircularProgressIndicator()))
+                                          : (filteredPenilaian == null || filteredPenilaian.isEmpty)
+                                              ? const Text('Tidak ada riwayat penilaian.')
+                                              : SizedBox(
+                                                  width: 300,
+                                                  height: 300,
+                                                  child: ListView.builder(
+                                                    shrinkWrap: true,
+                                                    itemCount: filteredPenilaian.length,
+                                                    itemBuilder: (context, index) {
+                                                      final penilaian = filteredPenilaian[index];
+                                                      return Padding(
+                                                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            Text('Tanggal: ${penilaian['tanggal_penilaian'] != null ? penilaian['tanggal_penilaian'].split('T')[0] : 'N/A'}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                            Text('Surat: ${penilaian['surat']}'),
+                                                            Text('Ayat: ${penilaian['dari_ayat']} - ${penilaian['sampai_ayat']}'),
+                                                            Text('Tajwid: ${penilaian['penilaian_tajwid']}'),
+                                                          ],
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+                                    ],
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(),
+                                    child: const Text('Tutup'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              )
+            else if (widget.userType == 'Guru' && _profileData != null)
+              Column(
+                children: [
+                  ProfileMenu(
+                    text: "Profil Guru",
+                    icon: "assets/icons/User Icon.svg",
+                    press: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return AlertDialog(
+                            title: const Text('Detail Guru'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Nama Lengkap: "+(_profileData!["nama_lengkap"] ?? "")),
+                                Text("NIP: "+(_profileData!["nip"] ?? "")),
+                                Text("Pendidikan Terakhir: "+(_profileData!["pendidikan_terakhir"] ?? "")),
+                                Text("No. Telepon: "+(_profileData!["nomor_telepon"] ?? "")),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('Tutup'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              )
+            else if (widget.userType == 'Orang Tua Santri' && _profileData != null)
+              Column(
+                children: [
+                  ProfileMenu(
+                    text: "Profil Orang Tua Santri",
+                    icon: "assets/icons/User Icon.svg",
+                    press: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return AlertDialog(
+                            title: const Text('Detail Orang Tua Santri'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Nama: "+(_profileData!["nama"] ?? "")),
+                                Text("Nama Santri: "+(_profileData!["nama_santri"] ?? "")),
+                                Text("Alamat: "+(_profileData!["alamat"] ?? "")),
+                                Text("No. Telepon: "+(_profileData!["nomor_telepon"] ?? "")),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('Tutup'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ],
               )
             else if (widget.userType == 'Guru' || widget.userType == 'Orang Tua Santri')
@@ -296,7 +476,7 @@ class _ProfilePicState extends State<ProfilePic> {
   }
 
   Future<void> _uploadImage(File image) async {
-    final uri = Uri.parse('http://10.95.121.11:5000/api/upload_profile_picture');
+    final uri = Uri.parse('http://10.123.201.11:5000/api/upload_profile_picture');
     // final uri = Uri.parse('http://192.18.20.236:5000/api/upload_profile_picture');
     final request = http.MultipartRequest('POST', uri)
       ..fields['user_type'] = widget.userType
@@ -324,7 +504,7 @@ class _ProfilePicState extends State<ProfilePic> {
   @override
   Widget build(BuildContext context) {
     String imageUrl = widget.currentImageUrl != null && widget.currentImageUrl!.isNotEmpty
-        ? 'http://10.95.121.11:5000/static/profile_pics/${widget.currentImageUrl}' // Full URL for server image
+        ? 'http://10.123.201.11:5000/static/profile_pics/${widget.currentImageUrl}' // Full URL for server image
         : "https://i.postimg.cc/0jqKB6mS/Profile-Image.png"; // Default image
         // ? 'http://192.18.20.236:5000/static/profile_pics/${widget.currentImageUrl}' // Full URL for server image
         // : "https://i.postimg.cc/0jqKB6mS/Profile-Image.png"; // Default image

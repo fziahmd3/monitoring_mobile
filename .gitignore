@@ -1,2 +1,5 @@
 # Big Size
 build/
+
+# Important
+.dart_tool/

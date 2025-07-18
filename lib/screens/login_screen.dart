@@ -62,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     // final String apiUrl = 'http://192.18.20.236:5000/api/login';
-    final String apiUrl = 'http://10.95.121.11:5000/api/login';
+    final String apiUrl = 'http://10.123.201.11:5000/api/login';
 
     Map<String, String> requestBody = {
       'user_type': _selectedUserType!,
