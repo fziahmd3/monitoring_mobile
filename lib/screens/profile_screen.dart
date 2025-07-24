@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart'; // Add this import
 import 'dart:io'; // Add this import
+import '../api_config.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String userType;
@@ -60,12 +61,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     String apiUrl = '';
     if (widget.userType == 'Santri') {
-      apiUrl = 'http://10.123.201.11:5000/api/santri_profile/${widget.credential}';
-      // apiUrl = 'http://192.18.20.236:5000/api/santri_profile/${widget.credential}';
+      apiUrl = '${ApiConfig.baseUrl}/api/santri_profile/${widget.credential}';
     } else if (widget.userType == 'Guru') {
-      apiUrl = 'http://10.123.201.11:5000/api/guru_profile/${widget.credential}';
+      apiUrl = '${ApiConfig.baseUrl}/api/guru_profile/${widget.credential}';
     } else if (widget.userType == 'Orang Tua Santri') {
-      apiUrl = 'http://10.123.201.11:5000/api/orangtua_profile/${widget.credential}';
+      apiUrl = '${ApiConfig.baseUrl}/api/orangtua_profile/${widget.credential}';
     }
 
     if (apiUrl.isEmpty) {
@@ -106,8 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _isLoadingPredictions = true;
     });
 
-    final String apiUrl = 'http://10.123.201.11:5000/api/santri/${widget.credential}/predictions';
-    // final String apiUrl = 'http://192.18.20.236:5000/api/santri/${widget.credential}/predictions';
+    final String apiUrl = '${ApiConfig.baseUrl}/api/santri/${widget.credential}/predictions';
 
     try {
       final response = await http.get(Uri.parse(apiUrl));
@@ -133,7 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _isLoadingPenilaian = true;
     });
-    final String apiUrl = 'http://10.123.201.11:5000/api/santri/${widget.credential}/penilaian';
+    final String apiUrl = '${ApiConfig.baseUrl}/api/santri/${widget.credential}/penilaian';
     try {
       final response = await http.get(Uri.parse(apiUrl));
       if (response.statusCode == 200) {
@@ -476,8 +475,7 @@ class _ProfilePicState extends State<ProfilePic> {
   }
 
   Future<void> _uploadImage(File image) async {
-    final uri = Uri.parse('http://10.123.201.11:5000/api/upload_profile_picture');
-    // final uri = Uri.parse('http://192.18.20.236:5000/api/upload_profile_picture');
+    final uri = Uri.parse('${ApiConfig.baseUrl}/api/upload_profile_picture');
     final request = http.MultipartRequest('POST', uri)
       ..fields['user_type'] = widget.userType
       ..fields['credential'] = widget.credential
@@ -504,10 +502,8 @@ class _ProfilePicState extends State<ProfilePic> {
   @override
   Widget build(BuildContext context) {
     String imageUrl = widget.currentImageUrl != null && widget.currentImageUrl!.isNotEmpty
-        ? 'http://10.123.201.11:5000/static/profile_pics/${widget.currentImageUrl}' // Full URL for server image
-        : "https://i.postimg.cc/0jqKB6mS/Profile-Image.png"; // Default image
-        // ? 'http://192.18.20.236:5000/static/profile_pics/${widget.currentImageUrl}' // Full URL for server image
-        // : "https://i.postimg.cc/0jqKB6mS/Profile-Image.png"; // Default image
+        ? '${ApiConfig.baseUrl}/static/profile_pics/${widget.currentImageUrl}'
+        : "https://i.postimg.cc/0jqKB6mS/Profile-Image.png";
 
     return SizedBox(
       height: 115,

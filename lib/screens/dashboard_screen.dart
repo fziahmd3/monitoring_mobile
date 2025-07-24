@@ -5,6 +5,7 @@ import 'package:monitoring_hafalan_app/screens/profile_screen.dart'; // Import t
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:monitoring_hafalan_app/screens/kemajuan_hafalan_screen.dart';
+import '../api_config.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String userType;
@@ -162,7 +163,7 @@ class PilihSantriUntukPenilaian extends StatefulWidget {
 class _PilihSantriUntukPenilaianState extends State<PilihSantriUntukPenilaian> {
   List<dynamic> _santriList = [];
   bool _isLoading = true;
-  String? _selectedNis;
+  String? _selectedKodeSantri;
 
   @override
   void initState() {
@@ -171,7 +172,7 @@ class _PilihSantriUntukPenilaianState extends State<PilihSantriUntukPenilaian> {
   }
 
   Future<void> _fetchSantriList() async {
-    final apiUrl = 'http://10.123.201.11:5000/api/daftar_santri';
+    final apiUrl = '${ApiConfig.baseUrl}/api/daftar_santri';
     try {
       final response = await http.get(Uri.parse(apiUrl));
       if (response.statusCode == 200) {
@@ -196,8 +197,8 @@ class _PilihSantriUntukPenilaianState extends State<PilihSantriUntukPenilaian> {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_selectedNis != null) {
-      return PenilaianHafalanFormScreen(nis: _selectedNis!);
+    if (_selectedKodeSantri != null) {
+      return PenilaianHafalanFormScreen(kodeSantri: _selectedKodeSantri!);
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -209,17 +210,17 @@ class _PilihSantriUntukPenilaianState extends State<PilihSantriUntukPenilaian> {
             labelText: 'Santri',
             border: OutlineInputBorder(),
           ),
-          value: _selectedNis,
+          value: _selectedKodeSantri,
           hint: const Text('Pilih santri'),
           onChanged: (String? newValue) {
             setState(() {
-              _selectedNis = newValue;
+              _selectedKodeSantri = newValue;
             });
           },
           items: _santriList.map<DropdownMenuItem<String>>((santri) {
             return DropdownMenuItem<String>(
-              value: santri['nis'],
-              child: Text('${santri['nama_lengkap']} (${santri['nis']})'),
+              value: santri['kode_santri'],
+              child: Text('${santri['nama_lengkap']} (${santri['kode_santri']})'),
             );
           }).toList(),
         ),

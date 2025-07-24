@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:monitoring_hafalan_app/screens/dashboard_screen.dart'; // Import dashboard
 import 'package:http/http.dart' as http; // Import http package
 import 'dart:convert'; // Import for JSON encoding/decoding
+import '../api_config.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -61,8 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // final String apiUrl = 'http://192.18.20.236:5000/api/login';
-    final String apiUrl = 'http://10.123.201.11:5000/api/login';
+    final String apiUrl = '${ApiConfig.baseUrl}/api/login';
 
     Map<String, String> requestBody = {
       'user_type': _selectedUserType!,

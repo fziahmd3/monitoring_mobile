@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
+import '../api_config.dart';
 
 class KemajuanHafalanScreen extends StatefulWidget {
-  final String nis;
-  const KemajuanHafalanScreen({super.key, required this.nis});
+  final String kodeSantri;
+  const KemajuanHafalanScreen({super.key, required this.kodeSantri});
 
   @override
   State<KemajuanHafalanScreen> createState() => _KemajuanHafalanScreenState();
@@ -36,7 +37,7 @@ class _KemajuanHafalanScreenState extends State<KemajuanHafalanScreen> {
       _isLoading = true;
       _errorMessage = null;
     });
-    final apiUrl = 'http://10.123.201.11:5000/api/santri/${widget.nis}/penilaian';
+    final apiUrl = '${ApiConfig.baseUrl}/api/santri/${widget.kodeSantri}/penilaian';
     try {
       final response = await http.get(Uri.parse(apiUrl));
       if (response.statusCode == 200) {

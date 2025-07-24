@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../api_config.dart';
 
 class PenilaianHafalanFormScreen extends StatefulWidget {
-  final String nis;
-  const PenilaianHafalanFormScreen({super.key, required this.nis});
+  final String kodeSantri;
+  const PenilaianHafalanFormScreen({super.key, required this.kodeSantri});
 
   @override
   State<PenilaianHafalanFormScreen> createState() => _PenilaianHafalanFormScreenState();
@@ -205,7 +206,7 @@ class _PenilaianHafalanFormScreenState extends State<PenilaianHafalanFormScreen>
       return;
     }
 
-    final apiUrl = 'http://10.123.201.11:5000/api/penilaian';
+    final apiUrl = '${ApiConfig.baseUrl}/api/penilaian';
 
     try {
       final response = await http.post(
@@ -214,7 +215,7 @@ class _PenilaianHafalanFormScreenState extends State<PenilaianHafalanFormScreen>
           'Content-Type': 'application/json; charset=UTF-8',
         },
         body: jsonEncode(<String, dynamic>{
-          'nis': widget.nis,
+          'kode_santri': widget.kodeSantri,
           'surat': _selectedSurat,
           'dari_ayat': int.parse(_dariAyatController.text),
           'sampai_ayat': int.parse(_sampaiAyatController.text),
