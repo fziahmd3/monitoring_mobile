@@ -1,7 +1,12 @@
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../api_config.dart';
+import 'dart:io';
+import 'dart:async';
+import 'dart:convert'; // Pastikan ini ada
+import '../api_config.dart'; // Pastikan ini ada
 
 class PenilaianHafalanFormScreen extends StatefulWidget {
   final String kodeSantri;
@@ -12,196 +17,97 @@ class PenilaianHafalanFormScreen extends StatefulWidget {
 }
 
 class _PenilaianHafalanFormScreenState extends State<PenilaianHafalanFormScreen> {
-  final TextEditingController _dariAyatController = TextEditingController();
-  final TextEditingController _sampaiAyatController = TextEditingController();
+  final _suratController = TextEditingController();
+  final _dariAyatController = TextEditingController();
+  final _sampaiAyatController = TextEditingController();
+  final _penilaianTajwidController = TextEditingController(); // Controller baru untuk penilaian tajwid
+  final _kelancaranController = TextEditingController(); // Controller baru untuk kelancaran
+  final _kefasihanController = TextEditingController(); // Controller baru untuk kefasihan
   String? _selectedSurat;
-  String? _selectedTajwid;
+  // String? _selectedTajwid; // Tidak lagi digunakan
   String? _result;
   String? _errorMessage;
 
+  // Bagian perekaman suara telah dipindahkan ke RekamHafalanScreen
+  // String? _recordingPath;
+  // bool _isRecording = false;
+  // final AudioRecorder _audioRecorder = AudioRecorder();
+  // Timer? _timer;
+  // int _recordDuration = 0;
+
   final Map<String, int> _jumlahAyatPerSurat = {
     'Al-Fatihah': 7,
-    'Al-Baqarah': 286,
-    'Ali Imran': 200,
-    'An-Nisa': 176,
-    'Al-Maidah': 120,
-    'Al-Anam': 165,
-    'Al-Araf': 206,
-    'Al-Anfal': 75,
-    'At-Taubah': 129,
-    'Yunus': 109,
-    'Hud': 123,
-    'Yusuf': 111,
-    'Ar-Ra’d': 43,
-    'Ibrahim': 52,
-    'Al-Hijr': 99,
-    'An-Nahl': 128,
-    'Al-Isra’': 111,
-    'Al-Kahfi': 110,
-    'Maryam': 98,
-    'Ta-Ha': 135,
-    'Al-Anbiya’': 112,
-    'Al-Hajj': 78,
-    'Al-Mu’minun': 118,
-    'An-Nur': 64,
-    'Al-Furqan': 77,
-    'Ash-Shu’ara’': 227,
-    'An-Naml': 93,
-    'Al-Qasas': 88,
-    'Al-Ankabut': 69,
-    'Ar-Rum': 60,
-    'Luqman': 34,
-    'As-Sajda': 30,
-    'Al-Ahzab': 73,
-    'Saba’': 54,
-    'Fatir': 45,
-    'Ya-Sin': 83,
-    'As-Saffat': 182,
-    'Sad': 88,
-    'Az-Zumar': 75,
-    'Ghafir': 85,
-    'Fussilat': 54,
-    'Ash-Shura': 53,
-    'Az-Zukhruf': 89,
-    'Ad-Dukhan': 59,
-    'Al-Jathiyah': 37,
-    'Al-Ahqaf': 35,
-    'Muhammad': 38,
-    'Al-Fath': 29,
-    'Al-Hujurat': 18,
-    'Qaf': 45,
-    'Adh-Dhariyat': 60,
-    'At-Tur': 49,
-    'An-Najm': 62,
-    'Al-Qamar': 55,
-    'Ar-Rahman': 78,
-    'Al-Waqi’ah': 96,
-    'Al-Hadid': 29,
-    'Al-Mujadila': 22,
-    'Al-Hashr': 24,
-    'Al-Mumtahanah': 13,
-    'As-Saff': 14,
-    'Al-Jumu’ah': 11,
-    'Al-Munafiqun': 11,
-    'At-Taghabun': 18,
-    'At-Talaq': 12,
-    'At-Tahrim': 12,
-    'Al-Mulk': 30,
-    'Al-Qalam': 52,
-    'Al-Haqqah': 52,
-    'Al-Ma’arij': 44,
-    'Nuh': 28,
-    'Al-Jinn': 28,
-    'Al-Muzzammil': 20,
-    'Al-Muddathir': 56,
-    'Al-Qiyamah': 40,
-    'Al-Insan': 31,
-    'Al-Mursalat': 50,
-    'An-Naba’': 40,
-    'An-Nazi’at': 46,
-    'Abasa': 42,
-    'At-Takwir': 29,
-    'Al-Infitar': 19,
-    'Al-Mutaffifin': 36,
-    'Al-Inshiqaq': 25,
-    'Al-Buruj': 22,
-    'At-Tariq': 17,
-    'Al-A’la': 19,
-    'Al-Ghashiyah': 26,
-    'Al-Fajr': 30,
-    'Al-Balad': 20,
-    'Ash-Shams': 15,
-    'Al-Lail': 21,
-    'Ad-Duha': 11,
-    'Ash-Sharh': 8,
-    'At-Tin': 8,
-    'Al-‘Alaq': 19,
-    'Al-Qadr': 5,
-    'Al-Bayyinah': 8,
-    'Az-Zalzalah': 8,
-    'Al-‘Adiyat': 11,
-    'Al-Qari’ah': 11,
-    'At-Takathur': 8,
-    'Al-Asr': 3,
-    'Al-Humazah': 9,
-    'Al-Fil': 5,
-    'Quraysh': 4,
-    'Al-Ma’un': 7,
-    'Al-Kawthar': 3,
-    'Al-Kafirun': 6,
-    'An-Nasr': 3,
-    'Al-Masad': 5,
-    'Al-Ikhlas': 4,
-    'Al-Falaq': 5,
     'An-Nas': 6,
+    'Al-Falaq': 5,
+    'Al-Ikhlas': 4,
+    'Al-Lahab': 5,
+    'An-Nasr': 3,
+    'Al-Kafirun': 6,
+    'Al-Kautsar': 3,
+    "Al-Ma'un": 7,
+    'Quraisy': 4,
+    'Al-Fil': 5,
+    'Al-Humazah': 9,
+    'Al-Asr': 3,
+    'At-Takasur': 8,
+    "Al-Qari'ah": 11,
+    'Al-Adiyat': 11,
+    'Az-Zalzalah': 8,
+    'Al-Bayyinah': 8,
+    'Al-Qadr': 5,
+    'Al-Alaq': 19,
+    'At-Tin': 8,
+    'Al-Insyirah': 8,
+    'Ad-Duha': 11,
+    'Al-Lail': 21,
+    'Asy-Syams': 15,
+    'Al-Balad': 20,
+    'Al-Fajr': 30,
+    'Al-Ghasyiyah': 26,
+    "Al-A'la": 19,
+    'At-Tariq': 17,
+    'Al-Buruj': 22,
+    'Al-Insyiqaq': 25,
+    'Al-Mutaffifin': 36,
+    'Al-Infitar': 19,
+    'At-Takwir': 29,
+    'An-Naba': 40,
   };
-
-  final List<String> _daftarSurat = [
-    'Al-Fatihah', 'Al-Baqarah', 'Ali Imran', 'An-Nisa', 'Al-Maidah',
-    'Al-Anam', 'Al-Araf', 'Al-Anfal', 'At-Taubah', 'Yunus',
-    'Hud', 'Yusuf', 'Ar-Ra’d', 'Ibrahim', 'Al-Hijr', 'An-Nahl', 'Al-Isra’', 'Al-Kahfi', 'Maryam', 'Ta-Ha',
-    'Al-Anbiya’', 'Al-Hajj', 'Al-Mu’minun', 'An-Nur', 'Al-Furqan', 'Ash-Shu’ara’', 'An-Naml', 'Al-Qasas', 'Al-Ankabut', 'Ar-Rum',
-    'Luqman', 'As-Sajda', 'Al-Ahzab', 'Saba’', 'Fatir', 'Ya-Sin', 'As-Saffat', 'Sad', 'Az-Zumar', 'Ghafir',
-    'Fussilat', 'Ash-Shura', 'Az-Zukhruf', 'Ad-Dukhan', 'Al-Jathiyah', 'Al-Ahqaf', 'Muhammad', 'Al-Fath', 'Al-Hujurat', 'Qaf',
-    'Adh-Dhariyat', 'At-Tur', 'An-Najm', 'Al-Qamar', 'Ar-Rahman', 'Al-Waqi’ah', 'Al-Hadid', 'Al-Mujadila', 'Al-Hashr', 'Al-Mumtahanah',
-    'As-Saff', 'Al-Jumu’ah', 'Al-Munafiqun', 'At-Taghabun', 'At-Talaq', 'At-Tahrim', 'Al-Mulk', 'Al-Qalam', 'Al-Haqqah', 'Al-Ma’arij',
-    'Nuh', 'Al-Jinn', 'Al-Muzzammil', 'Al-Muddathir', 'Al-Qiyamah', 'Al-Insan', 'Al-Mursalat', 'An-Naba’', 'An-Nazi’at', 'Abasa',
-    'At-Takwir', 'Al-Infitar', 'Al-Mutaffifin', 'Al-Inshiqaq', 'Al-Buruj', 'At-Tariq', 'Al-A’la', 'Al-Ghashiyah', 'Al-Fajr', 'Al-Balad',
-    'Ash-Shams', 'Al-Lail', 'Ad-Duha', 'Ash-Sharh', 'At-Tin', 'Al-‘Alaq', 'Al-Qadr', 'Al-Bayyinah', 'Az-Zalzalah', 'Al-‘Adiyat',
-    'Al-Qari’ah', 'At-Takathur', 'Al-Asr', 'Al-Humazah', 'Al-Fil', 'Quraysh', 'Al-Ma’un', 'Al-Kawthar', 'Al-Kafirun', 'An-Nasr',
-    'Al-Masad', 'Al-Ikhlas', 'Al-Falaq', 'An-Nas',
-  ];
-
-  final List<String> _penilaianTajwid = [
-    'Kurang', 'Cukup', 'Baik', 'Sangat Baik'
-  ];
-
-  int? _maxAyat;
-
-  void _onSuratChanged(String? newValue) {
-    setState(() {
-      _selectedSurat = newValue;
-      _maxAyat = newValue != null ? _jumlahAyatPerSurat[newValue] : null;
-      _dariAyatController.clear();
-      _sampaiAyatController.clear();
-    });
-  }
-
-  String? _validateAyat(String? value, {bool isDari = false}) {
-    if (value == null || value.isEmpty) return 'Wajib diisi';
-    final int? ayat = int.tryParse(value);
-    if (ayat == null || ayat < 1) return 'Harus angka >= 1';
-    if (_maxAyat != null && ayat > _maxAyat!) return 'Maksimal ayat: $_maxAyat';
-    if (!isDari && _dariAyatController.text.isNotEmpty) {
-      final int? dari = int.tryParse(_dariAyatController.text);
-      if (dari != null && ayat < dari) return 'Tidak boleh kurang dari ayat awal';
-    }
-    if (isDari && _sampaiAyatController.text.isNotEmpty) {
-      final int? sampai = int.tryParse(_sampaiAyatController.text);
-      if (sampai != null && ayat > sampai) return 'Tidak boleh lebih dari ayat akhir';
-    }
-    return null;
-  }
 
   @override
   void dispose() {
+    _suratController.dispose();
     _dariAyatController.dispose();
     _sampaiAyatController.dispose();
+    _penilaianTajwidController.dispose(); // Dispose controller baru
+    _kelancaranController.dispose(); // Dispose controller baru
+    _kefasihanController.dispose(); // Dispose controller baru
+    // _timer?.cancel(); // Sudah dipindahkan
+    // _audioRecorder.dispose(); // Sudah dipindahkan
     super.dispose();
   }
 
+  // Metode perekaman suara telah dipindahkan ke RekamHafalanScreen
+  // Future<void> _startRecording() async { ... }
+  // Future<void> _stopRecording() async { ... }
+  // void _startTimer() { ... }
+  // String _formatDuration(int seconds) { ... }
+  // Future<void> _playRecording(String path) async { ... }
+
   Future<void> _submitPenilaianForm() async {
     setState(() {
-      _errorMessage = null;
       _result = null;
+      _errorMessage = null;
     });
 
     if (_selectedSurat == null ||
         _dariAyatController.text.isEmpty ||
         _sampaiAyatController.text.isEmpty ||
-        _selectedTajwid == null) {
+        _penilaianTajwidController.text.isEmpty || // Cek field baru
+        _kelancaranController.text.isEmpty || // Cek field baru
+        _kefasihanController.text.isEmpty) { // Cek field baru
       setState(() {
-        _errorMessage = 'Harap lengkapi semua bidang.';
+        _errorMessage = 'Mohon lengkapi semua field yang diperlukan.';
       });
       return;
     }
@@ -211,141 +117,198 @@ class _PenilaianHafalanFormScreenState extends State<PenilaianHafalanFormScreen>
     try {
       final response = await http.post(
         Uri.parse(apiUrl),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode(<String, dynamic>{
           'kode_santri': widget.kodeSantri,
           'surat': _selectedSurat,
           'dari_ayat': int.parse(_dariAyatController.text),
           'sampai_ayat': int.parse(_sampaiAyatController.text),
-          'penilaian_tajwid': _selectedTajwid,
+          'penilaian_tajwid': int.parse(_penilaianTajwidController.text), // Kirim sebagai int
+          'kelancaran': int.parse(_kelancaranController.text), // Kirim field baru
+          'kefasihan': int.parse(_kefasihanController.text), // Kirim field baru
         }),
       );
 
       if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
         setState(() {
-          _result = 'Penilaian berhasil disimpan!';
+          _result = '${data['message']} Hasil Penilaian: ${data['hasil_prediksi_naive_bayes']}'; // Tampilkan hasil Naive Bayes
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Penilaian berhasil disimpan!')),
-        );
       } else {
         final errorBody = jsonDecode(response.body);
         setState(() {
-          _errorMessage = errorBody['error'] ?? 'Terjadi kesalahan saat menyimpan penilaian.';
+          _errorMessage = errorBody['error'] ?? 'Gagal menyimpan penilaian.';
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Tidak dapat terhubung ke server. Pastikan server Flask berjalan dan koneksi internet Anda aktif. Error: $e';
+        _errorMessage = 'Tidak dapat terhubung ke server. Error: $e';
       });
-      print('Error during penilaian API call: $e');
+      print('Error submitting penilaian: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          const Text(
-            'Form Penilaian Hafalan',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(
-              labelText: 'Surat yang Dihafalkan',
-              border: OutlineInputBorder(),
-            ),
-            value: _selectedSurat,
-            hint: const Text('Pilih surat'),
-            onChanged: _onSuratChanged,
-            items: _daftarSurat
-                .map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 15),
-          TextFormField(
-            controller: _dariAyatController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: 'Dari Ayat',
-              border: const OutlineInputBorder(),
-              suffix: _maxAyat != null ? Text('/$_maxAyat') : null,
-            ),
-            validator: (v) => _validateAyat(v, isDari: true),
-          ),
-          const SizedBox(height: 15),
-          TextFormField(
-            controller: _sampaiAyatController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: 'Sampai Ayat',
-              border: const OutlineInputBorder(),
-              suffix: _maxAyat != null ? Text('/$_maxAyat') : null,
-            ),
-            validator: (v) => _validateAyat(v),
-          ),
-          const SizedBox(height: 15),
-          DropdownButtonFormField<String>(
-            decoration: const InputDecoration(
-              labelText: 'Penilaian Tajwid',
-              border: OutlineInputBorder(),
-            ),
-            value: _selectedTajwid,
-            hint: const Text('Pilih penilaian tajwid'),
-            onChanged: (String? newValue) {
-              setState(() {
-                _selectedTajwid = newValue;
-              });
-            },
-            items: _penilaianTajwid
-                .map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _submitPenilaianForm,
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              backgroundColor: const Color.fromARGB(255, 26, 144, 11),
-              foregroundColor: Colors.white,
-            ),
-            child: const Text(
-              'Simpan Penilaian',
-              style: TextStyle(fontSize: 18),
-            ),
-          ),
-          const SizedBox(height: 20),
-          if (_errorMessage != null)
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Form Penilaian Hafalan'),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
             Text(
-              _errorMessage!,
-              style: const TextStyle(color: Colors.red, fontSize: 16),
-              textAlign: TextAlign.center,
+              'Santri: ${widget.kodeSantri}',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-          if (_result != null)
-            Text(
-              _result!,
-              style: const TextStyle(
-                  color: Colors.green,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
+            const SizedBox(height: 20),
+            DropdownButtonFormField<String>(
+              value: _selectedSurat,
+              hint: const Text('Pilih Surat'),
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedSurat = newValue;
+                  _dariAyatController.clear();
+                  _sampaiAyatController.clear();
+                });
+              },
+              items: _jumlahAyatPerSurat.keys.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+              decoration: const InputDecoration(
+                labelText: 'Surat',
+                border: OutlineInputBorder(),
+              ),
             ),
-        ],
+            const SizedBox(height: 10),
+            TextField(
+              controller: _dariAyatController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Dari Ayat',
+                border: const OutlineInputBorder(),
+                hintText: _selectedSurat != null
+                    ? '1 - ${_jumlahAyatPerSurat[_selectedSurat]}'
+                    : '',
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _sampaiAyatController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Sampai Ayat',
+                border: const OutlineInputBorder(),
+                hintText: _selectedSurat != null
+                    ? '1 - ${_jumlahAyatPerSurat[_selectedSurat]}'
+                    : '',
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _penilaianTajwidController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Penilaian Tajwid (1-5)',
+                border: const OutlineInputBorder(),
+                hintText: 'Masukkan angka 1-5',
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _kelancaranController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Kelancaran (1-5)',
+                border: const OutlineInputBorder(),
+                hintText: 'Masukkan angka 1-5',
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _kefasihanController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Kefasihan (1-5)',
+                border: const OutlineInputBorder(),
+                hintText: 'Masukkan angka 1-5',
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _submitPenilaianForm,
+              child: const Text('Simpan Penilaian'),
+            ),
+            if (_result != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Text(
+                  'Hasil: $_result',
+                  style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            if (_errorMessage != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Text(
+                  'Error: $_errorMessage',
+                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+
+            // Bagian Rekaman Suara
+            // const SizedBox(height: 20);
+            // Text(
+            //   'Rekam Hafalan:',
+            //   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            // );
+            // const SizedBox(height: 10);
+            // if (_isRecording)
+            //   Text(
+            //     'Merekam: ${_formatDuration(_recordDuration)}',
+            //     style: TextStyle(fontSize: 16, color: Colors.red),
+            //   );
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.center,
+            //   children: [
+            //     ElevatedButton(
+            //       onPressed: _isRecording ? _stopRecording : _startRecording,
+            //       child: Text(_isRecording ? 'Berhenti Merekam' : 'Mulai Merekam'),
+            //     ),
+            //     if (!_isRecording && _recordingPath != null)
+            //       Padding(
+            //         padding: const EdgeInsets.only(left: 10.0),
+            //         child: ElevatedButton(
+            //           onPressed: () {
+            //             _playRecording(_recordingPath!); // Call the play function
+            //           },
+            //           child: const Text('Putar Rekaman'),
+            //         ),
+            //       ),
+            //     if (!_isRecording && _recordingPath != null)
+            //       Padding(
+            //         padding: const EdgeInsets.only(left: 10.0),
+            //         child: ElevatedButton(
+            //           onPressed: () {
+            //             // _uploadRecording(_recordingPath!); // Fungsi ini akan diimplementasikan nanti
+            //             ScaffoldMessenger.of(context).showSnackBar(
+            //               const SnackBar(content: Text('Fitur upload rekaman akan ditambahkan.')),
+            //             );
+            //           },
+            //           child: const Text('Upload Rekaman'),
+            //         ),
+            //       ),
+            //   ],
+            // ),
+          ],
+        ),
       ),
     );
   }

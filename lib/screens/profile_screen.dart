@@ -317,7 +317,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                             Text('Tanggal: ${penilaian['tanggal_penilaian'] != null ? penilaian['tanggal_penilaian'].split('T')[0] : 'N/A'}', style: const TextStyle(fontWeight: FontWeight.bold)),
                                                             Text('Surat: ${penilaian['surat']}'),
                                                             Text('Ayat: ${penilaian['dari_ayat']} - ${penilaian['sampai_ayat']}'),
-                                                            Text('Tajwid: ${penilaian['penilaian_tajwid']}'),
+                                                            Text('Hasil Penilaian: ${penilaian['hasil_naive_bayes']}', style: const TextStyle(fontWeight: FontWeight.bold)),
                                                           ],
                                                         ),
                                                       );

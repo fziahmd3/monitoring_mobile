@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:monitoring_hafalan_app/screens/penilaian_hafalan_form_screen.dart'; // Import baru
 import 'package:monitoring_hafalan_app/screens/profile_screen.dart'; // Import the new unified profile screen
+import 'package:monitoring_hafalan_app/screens/rekam_hafalan_screen.dart'; // Import halaman rekam hafalan baru
 // Import global navigatorKey
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -39,13 +40,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } else { // Santri and Orang Tua Santri
       _widgetOptions = <Widget>[
         _buildHomeScreen(),
-        KemajuanHafalanScreen(nis: widget.credential),
+        KemajuanHafalanScreen(kodeSantri: widget.credential),
         ProfileScreen(userType: widget.userType, credential: widget.credential, displayName: widget.displayName),
       ];
     }
   }
 
   Widget _buildHomeScreen() {
+    if (widget.userType == 'Santri') {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Selamat datang di halaman utama santri!',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (context) => RekamHafalanScreen(kodeSantri: widget.credential)));
+              },
+              child: const Text('Rekam Hafalan'),
+            ),
+          ],
+        ),
+      );
+    } else {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -54,6 +75,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
     );
+    }
   }
 
   // Add a helper method for the generic profile screen for other users (if needed)

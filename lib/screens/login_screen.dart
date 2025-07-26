@@ -14,7 +14,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   // Controller untuk input teks
   final TextEditingController _credentialController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController(); // Controller untuk password
+  // final TextEditingController _passwordController = TextEditingController(); // Controller untuk password
   String? _selectedUserType; // Untuk menyimpan tipe pengguna yang dipilih
   String? _errorMessage; // Untuk menampilkan pesan error
 
@@ -49,15 +49,9 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     if (_selectedUserType == null ||
-        _credentialController.text.isEmpty ||
-        (_selectedUserType == 'Admin' && _passwordController.text.isEmpty)) { // Hanya periksa password jika Admin
+        _credentialController.text.isEmpty) { // Hapus pemeriksaan password
       setState(() {
-        _errorMessage = 'Mohon pilih tipe pengguna, isi kredensial,';
-        if (_selectedUserType == 'Admin') {
-          _errorMessage = '$_errorMessage dan kata sandi.';
-        } else {
-          _errorMessage = '$_errorMessage.';
-        }
+        _errorMessage = 'Mohon pilih tipe pengguna dan isi kredensial.'; // Sesuaikan pesan error
       });
       return;
     }
@@ -67,11 +61,8 @@ class _LoginScreenState extends State<LoginScreen> {
     Map<String, String> requestBody = {
       'user_type': _selectedUserType!,
       'credential': _credentialController.text,
+      // 'password': _passwordController.text, // Hapus pengiriman password
     };
-
-    if (_selectedUserType == 'Admin') {
-      requestBody['password'] = _passwordController.text;
-    }
 
     try {
       final response = await http.post(
@@ -116,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void dispose() {
     _credentialController.dispose();
-    _passwordController.dispose(); // Dispose password controller
+    // _passwordController.dispose(); // Dispose password controller
     super.dispose();
   }
 
@@ -205,9 +196,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     : TextInputType.text, // Username/Nama bisa teks
                 obscureText: false,
               ),
-              const SizedBox(height: 20),
-
-              // Input Kata Sandi (hanya tampil untuk Admin)
+              // Hapus input password dari sini
+              // const SizedBox(height: 20),
               // if (_selectedUserType == 'Admin')
               //   TextField(
               //     controller: _passwordController,
