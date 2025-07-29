@@ -23,6 +23,7 @@ class _PenilaianHafalanFormScreenState extends State<PenilaianHafalanFormScreen>
   final _penilaianTajwidController = TextEditingController(); // Controller baru untuk penilaian tajwid
   final _kelancaranController = TextEditingController(); // Controller baru untuk kelancaran
   final _kefasihanController = TextEditingController(); // Controller baru untuk kefasihan
+  final _catatanController = TextEditingController(); // Controller baru untuk catatan
   String? _selectedSurat;
   // String? _selectedTajwid; // Tidak lagi digunakan
   String? _result;
@@ -82,6 +83,7 @@ class _PenilaianHafalanFormScreenState extends State<PenilaianHafalanFormScreen>
     _penilaianTajwidController.dispose(); // Dispose controller baru
     _kelancaranController.dispose(); // Dispose controller baru
     _kefasihanController.dispose(); // Dispose controller baru
+    _catatanController.dispose(); // Dispose controller baru
     // _timer?.cancel(); // Sudah dipindahkan
     // _audioRecorder.dispose(); // Sudah dipindahkan
     super.dispose();
@@ -126,6 +128,7 @@ class _PenilaianHafalanFormScreenState extends State<PenilaianHafalanFormScreen>
           'penilaian_tajwid': int.parse(_penilaianTajwidController.text), // Kirim sebagai int
           'kelancaran': int.parse(_kelancaranController.text), // Kirim field baru
           'kefasihan': int.parse(_kefasihanController.text), // Kirim field baru
+          'catatan': _catatanController.text, // Kirim catatan
         }),
       );
 
@@ -237,6 +240,16 @@ class _PenilaianHafalanFormScreenState extends State<PenilaianHafalanFormScreen>
                 labelText: 'Kefasihan (1-5)',
                 border: const OutlineInputBorder(),
                 hintText: 'Masukkan angka 1-5',
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _catatanController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: 'Catatan',
+                border: const OutlineInputBorder(),
+                hintText: 'Masukkan catatan untuk santri',
               ),
             ),
             const SizedBox(height: 20),

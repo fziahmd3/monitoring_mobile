@@ -18,7 +18,7 @@ class _KemajuanHafalanScreenState extends State<KemajuanHafalanScreen> {
   List<dynamic> _penilaian = [];
   Map<String, double> _rataRataTajwid = {};
 
-  final List<String> _daftarTajwid = ['Kurang', 'Cukup', 'Baik', 'Sangat Baik'];
+  final List<String> _daftarTajwid = ['Kurang', 'Cukup', 'Baik', 'Sangat Baik'];  
   final Map<String, double> _nilaiTajwid = {
     'Kurang': 1,
     'Cukup': 2,
@@ -175,6 +175,46 @@ class _KemajuanHafalanScreenState extends State<KemajuanHafalanScreen> {
                                   ),
                                 );
                               }).toList(),
+                            ),
+                            const SizedBox(height: 20),
+                            const Text(
+                              'Riwayat Penilaian Terbaru',
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 10),
+                            ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _penilaian.take(5).length,
+                              itemBuilder: (context, index) {
+                                final penilaian = _penilaian[index];
+                                return Card(
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          '${penilaian['surat']} (Ayat ${penilaian['dari_ayat']}-${penilaian['sampai_ayat']})',
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text('Tanggal: ${penilaian['tanggal_penilaian'] != null ? penilaian['tanggal_penilaian'].split('T')[0] : 'N/A'}'),
+                                        Text('Hasil: ${penilaian['hasil_naive_bayes']}'),
+                                        if (penilaian['catatan'] != null && penilaian['catatan'].toString().isNotEmpty) ...[
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            'Catatan: ${penilaian['catatan']}',
+                                            style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.orange),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),

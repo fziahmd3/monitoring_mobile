@@ -202,8 +202,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text("Nama Lengkap: "+(_profileData!["nama_lengkap"] ?? "")),
-                                Text("NIS: "+(_profileData!["nis"] ?? "")),
-                                Text("Kelas: "+(_profileData!["kelas"] ?? "")),
+                                Text("Kode Santri: "+(_profileData!["kode_santri"] ?? "")),
+                                Text("Kelas: "+(_profileData!["tingkatan"] ?? "")),
                                 Text("Alamat: "+(_profileData!["alamat"] ?? "")),
                               ],
                             ),
@@ -218,56 +218,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     },
                   ),
-                  ProfileMenu(
-                    text: "Lihat Hasil Prediksi",
-                    icon: "assets/icons/Chart.svg",
-                    press: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) {
-                          return AlertDialog(
-                            title: const Text('Riwayat Prediksi Hafalan'),
-                            content: _isLoadingPredictions
-                                ? const SizedBox(height: 60, child: Center(child: CircularProgressIndicator()))
-                                : (_predictionResults == null || _predictionResults!.isEmpty)
-                                    ? const Text('Tidak ada riwayat prediksi.')
-                                    : SizedBox(
-                                        width: 300,
-                                        child: ListView.builder(
-                                          shrinkWrap: true,
-                                          itemCount: _predictionResults!.length,
-                                          itemBuilder: (context, index) {
-                                            final prediction = _predictionResults![index];
-                                            return Padding(
-                                              padding: const EdgeInsets.symmetric(vertical: 8.0),
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Text('Tanggal: ${prediction['predicted_at'] != null ? prediction['predicted_at'].split('T')[0] : 'N/A'}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                                  Text('Tingkat Hafalan: ${prediction['tingkat_hafalan']}'),
-                                                  Text('Jumlah Setoran: ${prediction['jumlah_setoran']}'),
-                                                  Text('Kehadiran: ${prediction['kehadiran']}%'),
-                                                  Text('Hasil Prediksi: ${prediction['hasil_prediksi']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(context).pop(),
-                                child: const Text('Tutup'),
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  ),
+                  // ProfileMenu(
+                  //   text: "Lihat Hasil Prediksi",
+                  //   icon: "assets/icons/Chart.svg",
+                  //   press: () {
+                  //     showDialog(
+                  //       context: context,
+                  //       builder: (context) {
+                  //         return AlertDialog(
+                  //           title: const Text('Riwayat Prediksi Hafalan'),
+                  //           content: _isLoadingPredictions
+                  //               ? const SizedBox(height: 60, child: Center(child: CircularProgressIndicator()))
+                  //               : (_predictionResults == null || _predictionResults!.isEmpty)
+                  //                   ? const Text('Tidak ada riwayat prediksi.')
+                  //                   : SizedBox(
+                  //                       width: 300,
+                  //                       child: ListView.builder(
+                  //                         shrinkWrap: true,
+                  //                         itemCount: _predictionResults!.length,
+                  //                         itemBuilder: (context, index) {
+                  //                           final prediction = _predictionResults![index];
+                  //                           return Padding(
+                  //                             padding: const EdgeInsets.symmetric(vertical: 8.0),
+                  //                             child: Column(
+                  //                               crossAxisAlignment: CrossAxisAlignment.start,
+                  //                               children: [
+                  //                                 Text('Tanggal: ${prediction['predicted_at'] != null ? prediction['predicted_at'].split('T')[0] : 'N/A'}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  //                                 Text('Tingkat Hafalan: ${prediction['tingkat_hafalan']}'),
+                  //                                 Text('Jumlah Setoran: ${prediction['jumlah_setoran']}'),
+                  //                                 Text('Kehadiran: ${prediction['kehadiran']}%'),
+                  //                                 Text('Hasil Prediksi: ${prediction['hasil_prediksi']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+                  //                               ],
+                  //                             ),
+                  //                           );
+                  //                         },
+                  //                       ),
+                  //                     ),
+                  //           actions: [
+                  //             TextButton(
+                  //               onPressed: () => Navigator.of(context).pop(),
+                  //               child: const Text('Tutup'),
+                  //             ),
+                  //           ],
+                  //         );
+                  //       },
+                  //     );
+                  //   },
+                  // ),
                   ProfileMenu(
                     text: "Lihat Riwayat Penilaian Hafalan",
-                    icon: "assets/icons/Chart.svg",
+                    icon: "assets/icons/Report.svg",
                     press: () {
                       showDialog(
                         context: context,
@@ -318,6 +318,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                             Text('Surat: ${penilaian['surat']}'),
                                                             Text('Ayat: ${penilaian['dari_ayat']} - ${penilaian['sampai_ayat']}'),
                                                             Text('Hasil Penilaian: ${penilaian['hasil_naive_bayes']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                            if (penilaian['catatan'] != null && penilaian['catatan'].toString().isNotEmpty)
+                                                              Text('Catatan: ${penilaian['catatan']}', style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.orange)),
                                                           ],
                                                         ),
                                                       );
@@ -501,10 +503,6 @@ class _ProfilePicState extends State<ProfilePic> {
 
   @override
   Widget build(BuildContext context) {
-    String imageUrl = widget.currentImageUrl != null && widget.currentImageUrl!.isNotEmpty
-        ? '${ApiConfig.baseUrl}/static/profile_pics/${widget.currentImageUrl}'
-        : "https://i.postimg.cc/0jqKB6mS/Profile-Image.png";
-
     return SizedBox(
       height: 115,
       width: 115,
@@ -513,7 +511,31 @@ class _ProfilePicState extends State<ProfilePic> {
         clipBehavior: Clip.none,
         children: [
           CircleAvatar(
-            backgroundImage: NetworkImage(imageUrl),
+            // Removed backgroundImage. Using child instead for SVG support.
+            child: widget.currentImageUrl != null && widget.currentImageUrl!.isNotEmpty
+                ? ClipOval( // Use ClipOval to ensure network image is circular
+                    child: Image.network(
+                      '${ApiConfig.baseUrl}/static/profile_pics/${widget.currentImageUrl}',
+                      fit: BoxFit.cover,
+                      width: 115, // Match CircleAvatar size
+                      height: 115, // Match CircleAvatar size
+                      errorBuilder: (context, error, stackTrace) {
+                        // Fallback to default SVG if network image fails to load
+                        return SvgPicture.asset(
+                          "assets/icons/User Icon.svg",
+                          fit: BoxFit.cover,
+                          width: 115,
+                          height: 115,
+                        );
+                      },
+                    ),
+                  )
+                : SvgPicture.asset(
+                    "assets/icons/User Icon.svg",
+                    fit: BoxFit.cover, // Ensures the SVG covers the circular area
+                    width: 115, // Match CircleAvatar size
+                    height: 115, // Match CircleAvatar size
+                  ),
           ),
           Positioned(
             right: -16,

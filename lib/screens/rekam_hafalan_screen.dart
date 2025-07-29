@@ -3,10 +3,18 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:http/http.dart' as http;
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import '../utils/audio_helper.dart';
+import '../api_config.dart';
 
 class RekamHafalanScreen extends StatefulWidget {
   final String kodeSantri;
-  const RekamHafalanScreen({super.key, required this.kodeSantri});
+  final String kodeGuru;
+  const RekamHafalanScreen({super.key, required this.kodeSantri, required this.kodeGuru});
 
   @override
   State<RekamHafalanScreen> createState() => _RekamHafalanScreenState();
@@ -15,14 +23,36 @@ class RekamHafalanScreen extends StatefulWidget {
 class _RekamHafalanScreenState extends State<RekamHafalanScreen> {
   String? _recordingPath;
   bool _isRecording = false;
+  bool _isPlaying = false;
   final AudioRecorder _audioRecorder = AudioRecorder();
   Timer? _timer;
   int _recordDuration = 0;
 
   @override
+  void initState() {
+    super.initState();
+    _setupAudioPlayer();
+  }
+
+  void _setupAudioPlayer() {
+    AudioHelper.playerStateStream?.listen((state) {
+      setState(() {
+        _isPlaying = state == PlayerState.playing;
+      });
+    });
+
+    AudioHelper.playerCompleteStream?.listen((event) {
+      setState(() {
+        _isPlaying = false;
+      });
+    });
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     _audioRecorder.dispose();
+    AudioHelper.dispose();
     super.dispose();
   }
 
@@ -74,8 +104,7 @@ class _RekamHafalanScreenState extends State<RekamHafalanScreen> {
       } else {
         print('Recording stopped, but path is null.');
       }
-    }
-    catch (e) {
+    } catch (e) {
       print('Error stopping recording: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal menghentikan rekaman: $e')),
@@ -98,11 +127,115 @@ class _RekamHafalanScreenState extends State<RekamHafalanScreen> {
   }
 
   Future<void> _playRecording(String path) async {
-    // This will be implemented when we integrate a player
-    // For now, just a placeholder
+    try {
+      print('Attempting to play recording from path: $path');
+      
+      final success = await AudioHelper.playAudio(path);
+      
+      if (success) {
+        print('Playback started successfully');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Memutar rekaman...')),
+      );
+      } else {
+        print('Failed to start playback');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Gagal memutar rekaman.')),
+        );
+      }
+    } catch (e) {
+      print('Error playing recording: $e');
+      final errorMessage = AudioHelper.getErrorMessage(e);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(errorMessage)),
+      );
+    }
+  }
+
+  Future<void> _stopPlaying() async {
+    try {
+      await AudioHelper.stopAudio();
+      setState(() {
+        _isPlaying = false;
+      });
+    } catch (e) {
+      print('Error stopping playback: $e');
+    }
+  }
+
+  Future<void> _uploadRecording(String path) async {
+    if (path.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Tidak ada rekaman untuk diunggah.')),
+      );
+      return;
+    }
+
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Fitur putar rekaman akan ditambahkan.')),
+      const SnackBar(content: Text('Mengunggah rekaman...')),
     );
+
+    var uri = Uri.parse('${ApiConfig.baseUrl}/upload_recording');
+    var request = http.MultipartRequest('POST', uri)
+      ..fields['kodeSantri'] = widget.kodeSantri;
+    
+    // Hanya kirim kodeGuru jika tidak kosong
+    if (widget.kodeGuru.isNotEmpty) {
+      request.fields['kodeGuru'] = widget.kodeGuru;
+    }
+
+    print('Uploading recording...');
+    print('kodeSantri: ${widget.kodeSantri}');
+    print('kodeGuru: ${widget.kodeGuru}');
+    print('File path: $path');
+
+    request.files.add(await http.MultipartFile.fromPath('recording', path));
+
+    try {
+      var response = await request.send();
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Rekaman berhasil diunggah!'))
+        );
+        print('Upload successful!');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengunggah rekaman:  {response.statusCode}'))
+        );
+        print('Upload failed with status: ${response.statusCode}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saat mengunggah: $e')),
+      );
+      print('Error during upload: $e');
+    }
+  }
+
+  Future<void> _pickAudioFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.audio,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        String? filePath = result.files.first.path;
+        if (filePath != null) {
+          setState(() {
+            _recordingPath = filePath;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('File audio dipilih: ${result.files.first.name}')),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memilih file audio: $e')),
+      );
+      print('Error picking audio file: $e');
+    }
   }
 
   @override
@@ -131,38 +264,93 @@ class _RekamHafalanScreenState extends State<RekamHafalanScreen> {
                 'Merekam: ${_formatDuration(_recordDuration)}',
                 style: TextStyle(fontSize: 16, color: Colors.red),
               ),
+            if (_isPlaying)
+              Text(
+                'Memutar rekaman...',
+                style: TextStyle(fontSize: 16, color: Colors.blue),
+              ),
+            if (_recordingPath != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Text(
+                  'File: ${_recordingPath!.split('/').last}',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                ElevatedButton(
+                ElevatedButton.icon(
                   onPressed: _isRecording ? _stopRecording : _startRecording,
-                  child: Text(_isRecording ? 'Berhenti Merekam' : 'Mulai Merekam'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isRecording ? Colors.red : Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                  icon: _isRecording 
+                    ? SvgPicture.asset(
+                        'assets/icons/Stop Record.svg',
+                        width: 20,
+                        height: 20,
+                        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                      )
+                    : SvgPicture.asset(
+                        'assets/icons/Start Record.svg',
+                        width: 20,
+                        height: 20,
+                        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                      ),
+                  label: Text(_isRecording ? 'Berhenti Merekam' : 'Mulai Merekam'),
                 ),
-                if (!_isRecording && _recordingPath != null)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 10.0),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        _playRecording(_recordingPath!); // Call the play function
-                      },
-                      child: const Text('Putar Rekaman'),
+                Padding(
+                  padding: const EdgeInsets.only(left: 10.0),
+                  child: ElevatedButton(
+                    onPressed: _isRecording ? null : _pickAudioFile,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      foregroundColor: Colors.white,
                     ),
+                    child: const Text('Pilih File'),
                   ),
-                if (!_isRecording && _recordingPath != null)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 10.0),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // _uploadRecording(_recordingPath!); // Fungsi ini akan diimplementasikan nanti
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Fitur upload rekaman akan ditambahkan.')),
-                        );
-                      },
-                      child: const Text('Upload Rekaman'),
-                    ),
-                  ),
+                ),
               ],
             ),
+            const SizedBox(height: 10),
+            if (_recordingPath != null)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _isPlaying ? _stopPlaying : () => _playRecording(_recordingPath!),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isPlaying ? Colors.orange : Colors.blue,
+                      foregroundColor: Colors.white,
+                    ),
+                    icon: _isPlaying 
+                      ? const Icon(Icons.stop, size: 20)
+                      : const Icon(Icons.play_arrow, size: 20),
+                    label: Text(_isPlaying ? 'Stop' : 'Putar Rekaman'),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 10.0),
+                    child: ElevatedButton.icon(
+                      onPressed: _isPlaying ? null : () => _uploadRecording(_recordingPath!),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.purple,
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: SvgPicture.asset(
+                        'assets/icons/Upload File.svg',
+                        width: 20,
+                        height: 20,
+                        colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                      ),
+                      label: const Text('Upload Rekaman'),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),

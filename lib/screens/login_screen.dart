@@ -32,9 +32,9 @@ class _LoginScreenState extends State<LoginScreen> {
       // case 'Admin':
       //   return 'Username'; // Label untuk Admin adalah Username
       case 'Guru':
-        return 'NIP';
+        return 'Kode Guru';
       case 'Santri':
-        return 'NISN';
+        return 'Kode Santri';
       case 'Orang Tua Santri':
         return 'Nama Santri';
       default:
@@ -192,7 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
                 keyboardType: (_selectedUserType == 'Guru' || _selectedUserType == 'Santri')
-                    ? TextInputType.number // NIP/NIS bisa angka
+                    ? TextInputType.text // NIP/NIS bisa angka
                     : TextInputType.text, // Username/Nama bisa teks
                 obscureText: false,
               ),
