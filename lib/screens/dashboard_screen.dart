@@ -6,13 +6,14 @@ import 'package:monitoring_hafalan_app/screens/rekam_hafalan_screen.dart'; // Im
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:monitoring_hafalan_app/screens/kemajuan_hafalan_screen.dart';
-import 'package:monitoring_hafalan_app/screens/rekam_hafalan_screen.dart';
 import '../api_config.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:monitoring_hafalan_app/utils/audio_helper.dart';
+
+
 import 'dart:math';
+import '../utils/tips.dart';
+import '../utils/kutipan.dart';
 
 class DashboardScreen extends StatefulWidget {
   final String userType;
@@ -35,49 +36,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<String> _rekamanFiles = [];
   bool _isLoadingRekaman = false;
   String? _errorRekaman;
+  
+  // Audio player state
+  String? _currentlyPlaying;
+  bool _isPlaying = false;
 
   // Untuk progress hafalan santri
   List<dynamic> _penilaian = [];
   bool _isLoadingProgress = false;
   String? _progressError;
 
-  // Tips harian/mingguan
-  final List<String> _tipsHafalan = [
-    'Ulangi hafalan setiap hari setelah shalat.',
-    'Buat jadwal rutin dan konsisten.',
-    'Dengarkan murattal untuk memperbaiki bacaan.',
-    'Tulis ayat yang dihafal untuk memperkuat ingatan.',
-    'Jangan lupa murojaah hafalan lama.',
-    'Baca dengan tartil dan pahami maknanya.',
-    'Mintalah doa dan dukungan orang tua.',
-    'Hafalkan di waktu yang sama setiap hari.',
-    'Jangan terburu-buru, utamakan kualitas.',
-    'Ajak teman untuk saling menyetorkan hafalan.'
-  ];
-
-  // Kutipan motivasi
-  final List<Map<String, String>> _kutipanMotivasi = [
-    {
-      'teks': 'Sebaik-baik kalian adalah yang belajar Al-Qur’an dan mengajarkannya.',
-      'sumber': 'HR. Bukhari'
-    },
-    {
-      'teks': 'Bacalah Al-Qur’an, karena ia akan datang pada hari kiamat sebagai pemberi syafaat bagi para pembacanya.',
-      'sumber': 'HR. Muslim'
-    },
-    {
-      'teks': 'Barangsiapa membaca satu huruf dari Kitab Allah, maka baginya satu kebaikan.',
-      'sumber': 'HR. Tirmidzi'
-    },
-    {
-      'teks': 'Sesungguhnya Allah memiliki keluarga di antara manusia, yaitu Ahlul Qur’an.',
-      'sumber': 'HR. Ahmad'
-    },
-    {
-      'teks': 'Pelajarilah Al-Qur’an dan bacalah, karena perumpamaan Al-Qur’an bagi orang yang mempelajarinya lalu membacanya dalam shalat adalah seperti kantong berisi minyak wangi yang baunya semerbak ke mana-mana.',
-      'sumber': 'HR. Bukhari dan Muslim'
-    },
-  ];
+  // Hapus list tips dan kutipan di sini, gunakan dari util
 
   @override
   void initState() {
@@ -86,13 +55,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (widget.userType == 'Santri') {
       _fetchProgressHafalan();
     }
+    
+    // Setup audio player listeners
+    _setupAudioListeners();
+  }
+  
+  void _setupAudioListeners() {
+    AudioHelper.playerCompleteStream?.listen((event) {
+      if (mounted) {
+        setState(() {
+          _currentlyPlaying = null;
+          _isPlaying = false;
+        });
+      }
+    });
   }
 
   void _initializeWidgetOptions() {
     if (widget.userType == 'Guru') {
       _widgetOptions = <Widget>[
         _buildHomeScreen(),
-        PilihSantriUntukPenilaian(),
+        PilihSantriUntukPenilaian(credential: widget.credential),
         ProfileScreen(userType: widget.userType, credential: widget.credential, displayName: widget.displayName),
       ];
     } else { // Santri and Orang Tua Santri
@@ -104,26 +87,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  Future<void> _fetchRekamanSantri(String kodeSantri) async {
+  Future<void> _fetchRekamanGuru(String kodeGuru, {String? kodeSantri}) async {
     setState(() {
       _isLoadingRekaman = true;
       _errorRekaman = null;
       _rekamanFiles = [];
     });
+    
     try {
-      final url = Uri.parse('${ApiConfig.baseUrl}/api/rekaman_santri/$kodeSantri');
-      final response = await http.get(url);
+      final uri = Uri.parse('${ApiConfig.baseUrl}/api/rekaman_guru/$kodeGuru');
+      final url = kodeSantri != null && kodeSantri.isNotEmpty
+          ? uri.replace(queryParameters: {'kode_santri': kodeSantri})
+          : uri;
+      
+      print('=== Fetch Rekaman Guru ===');
+      print('Kode Guru: $kodeGuru');
+      print('Kode Santri: $kodeSantri');
+      print('URL: $url');
+      print('ApiConfig.baseUrl: ${ApiConfig.baseUrl}');
+      
+      final response = await http.get(url).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Request timeout');
+        },
+      );
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        print('Decoded data: $data');
         setState(() {
           _rekamanFiles = List<String>.from(data['files']);
         });
+        print('Files set: $_rekamanFiles');
       } else {
+        print('Error response: ${response.body}');
         setState(() {
-          _errorRekaman = 'Gagal memuat rekaman (status: ${response.statusCode})';
+          _errorRekaman = 'Gagal memuat rekaman (status: ${response.statusCode}): ${response.body}';
         });
       }
     } catch (e) {
+      print('Error in _fetchRekamanGuru: $e');
       setState(() {
         _errorRekaman = 'Terjadi error: $e';
       });
@@ -134,15 +140,65 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+
+
+  String _parseRecordingTitle(String filename) {
+    final parts = filename.split('_');
+    if (parts.length >= 3) {
+      final kodeGuru = parts[0];
+      final kodeSantri = parts[1];
+      
+      return 'Rekaman dari Santri $kodeSantri ke Guru $kodeGuru';
+    }
+    return filename;
+  }
+
   Future<void> _playRemoteRecording(String filename) async {
     final url = '${ApiConfig.baseUrl}/static/recordings/$filename';
+    print('Attempting to play remote recording: $url');
+    
     try {
       await AudioHelper.initialize();
       await AudioHelper.stopAudio();
-      await AudioHelper.playAudio(url);
+      
+      final success = await AudioHelper.playAudio(url);
+      if (success) {
+        setState(() {
+          _currentlyPlaying = filename;
+          _isPlaying = true;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Memutar rekaman: ${_parseRecordingTitle(filename)}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        setState(() {
+          _currentlyPlaying = null;
+          _isPlaying = false;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memutar rekaman: ${_parseRecordingTitle(filename)}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
+      setState(() {
+        _currentlyPlaying = null;
+        _isPlaying = false;
+      });
+      
+      print('Error playing remote recording: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memutar rekaman: $e')),
+        SnackBar(
+          content: Text('Error memutar rekaman: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -204,8 +260,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildHomeScreen() {
     if (widget.userType == 'Santri') {
-      final motivasi = _kutipanMotivasi[Random().nextInt(_kutipanMotivasi.length)];
-      final tips = _tipsHafalan[DateTime.now().day % _tipsHafalan.length];
+      final motivasi = kutipanMotivasi[Random().nextInt(kutipanMotivasi.length)];
+      final tips = tipsHafalan[DateTime.now().day % tipsHafalan.length];
       final progress = _hitungProgress();
       return SingleChildScrollView(
         child: Padding(
@@ -241,17 +297,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ? const LinearProgressIndicator()
                       : _progressError != null
                           ? Text(_progressError!, style: const TextStyle(color: Colors.red))
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                Text('Hafalan Terakhir: ${progress['suratTerakhir']}${progress['ayatTerakhir'] != '-' ? ": ${progress['ayatTerakhir']}" : ''}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('Total Juz: ${progress['totalJuz']}'),
-                                    Text('Juz Terakhir: ${progress['juzTerakhir']}'),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Total Juz: ${progress['totalJuz']}'),
+                                        Text('Juz Terakhir: ${progress['juzTerakhir']}'),
+                                      ],
+                                    ),
+                                    Text('${progress['persentase'].toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue)),
                                   ],
                                 ),
-                                Text('${progress['persentase'].toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue)),
                               ],
                             ),
                 ),
@@ -307,53 +370,229 @@ class _DashboardScreenState extends State<DashboardScreen> {
               textAlign: TextAlign.center,
             ),
               const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  SizedBox(
-                    width: 180,
-                    child: TextField(
-                      controller: _kodeSantriController,
-                      decoration: const InputDecoration(
-                        labelText: 'Kode Santri',
-                        border: OutlineInputBorder(),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _kodeSantriController,
+                          decoration: const InputDecoration(
+                            labelText: 'Kode Santri',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      ElevatedButton(
+                        onPressed: () {
+                          final kode = _kodeSantriController.text.trim();
+                          if (kode.isNotEmpty) {
+                            _fetchRekamanGuru(widget.credential, kodeSantri: kode);
+                          }
+                        },
+                        child: const Text('Cari'),
+                      ),
+                    ],
+                  ),
+                  if (widget.userType == 'Guru')
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Refresh'),
+                        onPressed: () {
+                          final kode = _kodeSantriController.text.trim();
+                          if (kode.isNotEmpty) {
+                            _fetchRekamanGuru(widget.credential, kodeSantri: kode);
+                          }
+                        },
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton(
-              onPressed: () {
-                      final kode = _kodeSantriController.text.trim();
-                      if (kode.isNotEmpty) {
-                        _fetchRekamanSantri(kode);
-                      }
-                    },
-                    child: const Text('Cari'),
-                  ),
                 ],
               ),
               const SizedBox(height: 20),
               if (_isLoadingRekaman)
                 const CircularProgressIndicator(),
-              if (_errorRekaman != null)
+                            if (_errorRekaman != null)
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Text(_errorRekaman!, style: const TextStyle(color: Colors.red)),
+                ),
+              // Debug info
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text('Debug: Files count: ${_rekamanFiles.length}, Loading: $_isLoadingRekaman, Error: ${_errorRekaman ?? "none"}'),
+              ),
+              // Test button
+              if (widget.userType == 'Guru')
+                Column(
+                  children: [
+                    ElevatedButton(
+                      onPressed: () async {
+                        print('=== Test Connection Button Pressed ===');
+                        try {
+                          final url = Uri.parse('${ApiConfig.baseUrl}/api/test_connection');
+                          print('Testing connection to: $url');
+                          final response = await http.get(url);
+                          print('Test response: ${response.statusCode} - ${response.body}');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Test result: ${response.statusCode} - ${response.body}')),
+                          );
+                        } catch (e) {
+                          print('Test error: $e');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Test error: $e')),
+                          );
+                        }
+                      },
+                      child: const Text('Test Connection'),
+                    ),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: () async {
+                        print('=== Test Rekaman Guru Button Pressed ===');
+                        try {
+                          final url = Uri.parse('${ApiConfig.baseUrl}/api/rekaman_guru/${widget.credential}?kode_santri=3');
+                          print('Testing rekaman guru to: $url');
+                          final response = await http.get(url);
+                          print('Test rekaman response: ${response.statusCode} - ${response.body}');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Test rekaman result: ${response.statusCode} - ${response.body}')),
+                          );
+                        } catch (e) {
+                          print('Test rekaman error: $e');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Test rekaman error: $e')),
+                          );
+                        }
+                      },
+                      child: const Text('Test Rekaman Guru'),
+                    ),
+                  ],
                 ),
               if (_rekamanFiles.isNotEmpty)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Daftar Rekaman:', style: TextStyle(fontWeight: FontWeight.bold)),
+                    Card(
+                      color: Colors.blue[50],
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.headphones, color: Colors.blue),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Rekaman Hafalan Santri',
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Total: ${_rekamanFiles.length} rekaman',
+                              style: const TextStyle(fontSize: 14, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 10),
                     ..._rekamanFiles.map((file) => Card(
+                          elevation: 2,
                           child: ListTile(
-                            title: Text(file),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.play_arrow),
-                              onPressed: () => _playRemoteRecording(file),
+                            leading: const Icon(Icons.audiotrack, color: Colors.blue, size: 32),
+                            title: Text(
+                              _parseRecordingTitle(file),
+                              style: const TextStyle(fontWeight: FontWeight.w600),
                             ),
-                            subtitle: Text('${ApiConfig.baseUrl}/static/recordings/$file'),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('File: $file'),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.info_outline, size: 16, color: Colors.grey),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        'Klik tombol play untuk mendengarkan rekaman hafalan',
+                                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Status indicator
+                                if (_currentlyPlaying == file && _isPlaying)
+                                  Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.volume_up,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                  ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: Icon(
+                                    _currentlyPlaying == file && _isPlaying 
+                                        ? Icons.pause 
+                                        : Icons.play_arrow,
+                                    color: _currentlyPlaying == file && _isPlaying 
+                                        ? Colors.orange 
+                                        : Colors.green,
+                                    size: 28,
+                                  ),
+                                  onPressed: () {
+                                    if (_currentlyPlaying == file && _isPlaying) {
+                                      // Pause current audio
+                                      AudioHelper.pauseAudio();
+                                      setState(() {
+                                        _isPlaying = false;
+                                      });
+                                    } else {
+                                      // Play audio
+                                      _playRemoteRecording(file);
+                                    }
+                                  },
+                                  tooltip: _currentlyPlaying == file && _isPlaying 
+                                      ? 'Jeda Rekaman' 
+                                      : 'Putar Rekaman',
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.stop, color: Colors.red, size: 28),
+                                  onPressed: () async {
+                                    await AudioHelper.stopAudio();
+                                    setState(() {
+                                      _currentlyPlaying = null;
+                                      _isPlaying = false;
+                                    });
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Rekaman dihentikan'),
+                                        backgroundColor: Colors.orange,
+                                      ),
+                                    );
+                                  },
+                                  tooltip: 'Hentikan Rekaman',
+                                ),
+                              ],
+                            ),
                           ),
                         )),
                   ],
@@ -362,7 +601,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const Padding(
                   padding: EdgeInsets.all(8.0),
                   child: Text('Tidak ada rekaman untuk kode santri ini.'),
-            ),
+                ),
           ],
           ),
         ),
@@ -425,26 +664,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       );
     }
-  }
-
-  // Add a helper method for the generic profile screen for other users (if needed)
-  Widget _buildProfileScreen() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text(
-          'Profil Screen',
-          style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 30),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.pushReplacementNamed(context, '/');
-          },
-          child: const Text('Logout'),
-        ),
-      ],
-    );
   }
 
   void _onItemTapped(int index) {
@@ -554,11 +773,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic> _hitungProgress() {
     if (_penilaian.isEmpty) {
       return {
+        'suratTerakhir': '-',
+        'ayatTerakhir': '-',
         'totalJuz': 0,
         'juzTerakhir': '-',
         'persentase': 0.0,
       };
     }
+    // Penilaian terakhir (setoran terbaru)
+    final last = _penilaian.first;
+    final suratTerakhir = last['surat'] ?? '-';
+    final ayatTerakhir = (last['dari_ayat'] != null && last['sampai_ayat'] != null)
+        ? '${last['dari_ayat']}-${last['sampai_ayat']}'
+        : '-';
     // Asumsi: setiap penilaian punya field 'surat', dan juz bisa diambil dari nama surat
     // Untuk demo, kita asumsikan setiap 20 surat = 1 juz (bisa disesuaikan dengan mapping sebenarnya)
     final List<String> daftarSurat = [
@@ -593,6 +820,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Persentase kemajuan: jumlah surat yang sudah dihafal / total surat x 100
     double persentase = suratHafal.length / daftarSurat.length * 100;
     return {
+      'suratTerakhir': suratTerakhir,
+      'ayatTerakhir': ayatTerakhir,
       'totalJuz': totalJuz,
       'juzTerakhir': juzTerakhir == 0 ? '-' : 'Juz $juzTerakhir',
       'persentase': persentase,
@@ -602,6 +831,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
 // Widget baru untuk memilih santri sebelum penilaian
 class PilihSantriUntukPenilaian extends StatefulWidget {
+  final String credential;
+  const PilihSantriUntukPenilaian({super.key, required this.credential});
+  
   @override
   State<PilihSantriUntukPenilaian> createState() => _PilihSantriUntukPenilaianState();
 }
@@ -644,7 +876,10 @@ class _PilihSantriUntukPenilaianState extends State<PilihSantriUntukPenilaian> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_selectedKodeSantri != null) {
-      return PenilaianHafalanFormScreen(kodeSantri: _selectedKodeSantri!);
+      return PenilaianHafalanFormScreen(
+        kodeSantri: _selectedKodeSantri!,
+        kodeGuru: widget.credential, // Kirim kode guru dari credential
+      );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -30,26 +30,35 @@ class AudioHelper {
         return false;
       }
       
-      // Periksa file
-      final file = File(filePath);
-      if (!await file.exists()) {
-        print('Audio file does not exist: $filePath');
-        return false;
-      }
-
-      final fileSize = await file.length();
-      if (fileSize == 0) {
-        print('Audio file is empty: $filePath');
-        return false;
-      }
-
       // Stop playback yang sedang berlangsung
       await _audioPlayer!.stop();
       
-      // Putar file baru
-      Source source = DeviceFileSource(filePath);
-      await _audioPlayer!.play(source);
+      Source source;
       
+      // Periksa apakah ini URL atau file lokal
+      if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+        // URL remote
+        print('Playing remote audio: $filePath');
+        source = UrlSource(filePath);
+      } else {
+        // File lokal
+        final file = File(filePath);
+        if (!await file.exists()) {
+          print('Audio file does not exist: $filePath');
+          return false;
+        }
+
+        final fileSize = await file.length();
+        if (fileSize == 0) {
+          print('Audio file is empty: $filePath');
+          return false;
+        }
+        
+        print('Playing local audio: $filePath');
+        source = DeviceFileSource(filePath);
+      }
+      
+      await _audioPlayer!.play(source);
       print('Audio playback started: $filePath');
       return true;
     } catch (e) {

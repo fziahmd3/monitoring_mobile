@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:http/http.dart' as http;
-import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../utils/audio_helper.dart';
@@ -62,10 +61,10 @@ class _RekamHafalanScreenState extends State<RekamHafalanScreen> {
       if (await Permission.microphone.request().isGranted &&
           await Permission.storage.request().isGranted) {
         final appDocDir = await getApplicationDocumentsDirectory();
-        final filePath = '${appDocDir.path}/hafalan_recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        final filePath = '${appDocDir.path}/hafalan_recording_${DateTime.now().millisecondsSinceEpoch}.wav';
 
         await _audioRecorder.start(
-          RecordConfig(encoder: AudioEncoder.aacLc),
+          RecordConfig(encoder: AudioEncoder.wav),
           path: filePath,
         );
 
@@ -195,14 +194,30 @@ class _RekamHafalanScreenState extends State<RekamHafalanScreen> {
       var response = await request.send();
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Rekaman berhasil diunggah!'))
+          const SnackBar(content: Text('Rekaman berhasil diunggah!')),
         );
         print('Upload successful!');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal mengunggah rekaman:  {response.statusCode}'))
+        // Tambahkan notifikasi dialog
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Upload Berhasil'),
+            content: const Text('Rekaman berhasil diupload. Silakan minta guru untuk menekan tombol Refresh agar rekaman muncul di list.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
         );
-        print('Upload failed with status: ${response.statusCode}');
+      } else {
+        // Baca response body untuk mendapatkan pesan error yang lebih detail
+        final responseBody = await response.stream.bytesToString();
+        print('Upload failed with status: ${response.statusCode}, response: $responseBody');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengunggah rekaman: ${response.statusCode}'))
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

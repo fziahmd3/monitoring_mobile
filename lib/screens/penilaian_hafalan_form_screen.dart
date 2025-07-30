@@ -10,7 +10,8 @@ import '../api_config.dart'; // Pastikan ini ada
 
 class PenilaianHafalanFormScreen extends StatefulWidget {
   final String kodeSantri;
-  const PenilaianHafalanFormScreen({super.key, required this.kodeSantri});
+  final String kodeGuru;
+  const PenilaianHafalanFormScreen({super.key, required this.kodeSantri, required this.kodeGuru});
 
   @override
   State<PenilaianHafalanFormScreen> createState() => _PenilaianHafalanFormScreenState();
@@ -122,6 +123,7 @@ class _PenilaianHafalanFormScreenState extends State<PenilaianHafalanFormScreen>
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(<String, dynamic>{
           'kode_santri': widget.kodeSantri,
+          'kode_guru': widget.kodeGuru, // Tambahkan kode guru
           'surat': _selectedSurat,
           'dari_ayat': int.parse(_dariAyatController.text),
           'sampai_ayat': int.parse(_sampaiAyatController.text),
