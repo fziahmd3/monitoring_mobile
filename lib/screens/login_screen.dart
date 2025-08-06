@@ -36,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
       case 'Santri':
         return 'Kode Santri';
       case 'Orang Tua Santri':
-        return 'Nama Santri';
+        return 'Kode Orang Tua';
       default:
         return 'Kredensial';
     }

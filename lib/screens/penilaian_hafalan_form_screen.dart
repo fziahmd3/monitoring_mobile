@@ -136,11 +136,16 @@ class _PenilaianHafalanFormScreenState extends State<PenilaianHafalanFormScreen>
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        final statusLulus = data['status_lulus'] ?? 'TIDAK LULUS';
+        final warnaHasil = data['warna_hasil'] ?? 'merah';
+        final kkm = data['kkm'] ?? 75;
+        if (!mounted) return;
         setState(() {
-          _result = '${data['message']} Hasil Penilaian: ${data['hasil_prediksi_naive_bayes']}'; // Tampilkan hasil Naive Bayes
+          _result = '${data['message']}\n\nHasil Penilaian: ${data['hasil_prediksi_naive_bayes']}\nStatus: $statusLulus\nKKM: $kkm';
         });
       } else {
         final errorBody = jsonDecode(response.body);
+        if (!mounted) return;
         setState(() {
           _errorMessage = errorBody['error'] ?? 'Gagal menyimpan penilaian.';
         });
@@ -219,9 +224,9 @@ class _PenilaianHafalanFormScreenState extends State<PenilaianHafalanFormScreen>
               controller: _penilaianTajwidController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'Penilaian Tajwid (1-5)',
+                labelText: 'Penilaian Tajwid (1-100)',
                 border: const OutlineInputBorder(),
-                hintText: 'Masukkan angka 1-5',
+                hintText: 'Masukkan angka 1-100',
               ),
             ),
             const SizedBox(height: 10),
@@ -229,9 +234,9 @@ class _PenilaianHafalanFormScreenState extends State<PenilaianHafalanFormScreen>
               controller: _kelancaranController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'Kelancaran (1-5)',
+                labelText: 'Kelancaran (1-100)',
                 border: const OutlineInputBorder(),
-                hintText: 'Masukkan angka 1-5',
+                hintText: 'Masukkan angka 1-100',
               ),
             ),
             const SizedBox(height: 10),
@@ -239,9 +244,9 @@ class _PenilaianHafalanFormScreenState extends State<PenilaianHafalanFormScreen>
               controller: _kefasihanController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'Kefasihan (1-5)',
+                labelText: 'Kefasihan (1-100)',
                 border: const OutlineInputBorder(),
-                hintText: 'Masukkan angka 1-5',
+                hintText: 'Masukkan angka 1-100',
               ),
             ),
             const SizedBox(height: 10),
@@ -260,12 +265,47 @@ class _PenilaianHafalanFormScreenState extends State<PenilaianHafalanFormScreen>
               child: const Text('Simpan Penilaian'),
             ),
             if (_result != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Text(
-                  'Hasil: $_result',
-                  style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
+              Container(
+                padding: const EdgeInsets.all(16.0),
+                margin: const EdgeInsets.only(top: 16.0),
+                decoration: BoxDecoration(
+                  color: _result!.contains('LULUS') ? Colors.green[100] : Colors.red[100],
+                  borderRadius: BorderRadius.circular(8.0),
+                  border: Border.all(
+                    color: _result!.contains('LULUS') ? Colors.green : Colors.red,
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _result!,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: _result!.contains('LULUS') ? Colors.green[800] : Colors.red[800],
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (_result!.contains('TIDAK LULUS')) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(8.0),
+                        decoration: BoxDecoration(
+                          color: Colors.orange[100],
+                          borderRadius: BorderRadius.circular(4.0),
+                          border: Border.all(color: Colors.orange),
+                        ),
+                        child: const Text(
+                          '⚠️ Santri harus mengulang hingga nilai di atas KKM',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.orange,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             if (_errorMessage != null)

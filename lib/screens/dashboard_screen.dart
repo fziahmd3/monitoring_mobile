@@ -6,9 +6,13 @@ import 'package:monitoring_hafalan_app/screens/rekam_hafalan_screen.dart'; // Im
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:monitoring_hafalan_app/screens/kemajuan_hafalan_screen.dart';
+import 'package:monitoring_hafalan_app/screens/summary_hafalan_screen.dart'; // Import halaman summary hafalan
+import 'package:monitoring_hafalan_app/screens/overview_santri_screen.dart'; // Import halaman overview santri
+import 'package:monitoring_hafalan_app/screens/orangtua_dashboard_screen.dart'; // Import halaman orang tua
 import '../api_config.dart';
 import 'package:flutter/services.dart';
 import 'package:monitoring_hafalan_app/utils/audio_helper.dart';
+import 'package:monitoring_hafalan_app/screens/daftar_rekaman_santri_screen.dart';
 
 
 import 'dart:math';
@@ -76,9 +80,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _widgetOptions = <Widget>[
         _buildHomeScreen(),
         PilihSantriUntukPenilaian(credential: widget.credential),
+        PilihSantriUntukProgress(credential: widget.credential),
         ProfileScreen(userType: widget.userType, credential: widget.credential, displayName: widget.displayName),
       ];
-    } else { // Santri and Orang Tua Santri
+    } else if (widget.userType == 'Orang Tua Santri') {
+      _widgetOptions = <Widget>[
+        OrangTuaDashboardScreen(kodeOrangTua: widget.credential, namaOrangTua: widget.displayName),
+        ProfileScreen(userType: widget.userType, credential: widget.credential, displayName: widget.displayName),
+      ];
+    } else { // Santri
       _widgetOptions = <Widget>[
         _buildHomeScreen(),
         KemajuanHafalanScreen(kodeSantri: widget.credential),
@@ -310,6 +320,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       children: [
                                         Text('Total Juz: ${progress['totalJuz']}'),
                                         Text('Juz Terakhir: ${progress['juzTerakhir']}'),
+                                        if (progress['nilaiTerakhir'] != '-') ...[
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              Text('Nilai: ${progress['nilaiTerakhir']}'),
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: progress['statusLulus'] == 'LULUS' ? Colors.green[100] : Colors.red[100],
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                    color: progress['statusLulus'] == 'LULUS' ? Colors.green : Colors.red,
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  progress['statusLulus'],
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: progress['statusLulus'] == 'LULUS' ? Colors.green[800] : Colors.red[800],
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
                                       ],
                                     ),
                                     Text('${progress['persentase'].toStringAsFixed(1)}%', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.blue)),
@@ -389,7 +426,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         onPressed: () {
                           final kode = _kodeSantriController.text.trim();
                           if (kode.isNotEmpty) {
-                            _fetchRekamanGuru(widget.credential, kodeSantri: kode);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DaftarRekamanSantriScreen(
+                                  kodeGuru: widget.credential,
+                                  kodeSantri: kode,
+                                ),
+                              ),
+                            );
                           }
                         },
                         child: const Text('Cari'),
@@ -697,11 +742,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
           label: 'Form Penilaian',
         ),
         BottomNavigationBarItem(
-          icon: _buildAnimatedIcon(Icons.person, 2),
+          icon: _buildAnimatedIcon(Icons.trending_up, 2),
+          label: 'Progress Santri',
+        ),
+        BottomNavigationBarItem(
+          icon: _buildAnimatedIcon(Icons.person, 3),
           label: 'Profil',
         ),
       ];
-    } else { // Santri and Orang Tua Santri
+    } else if (widget.userType == 'Orang Tua Santri') {
+      return <BottomNavigationBarItem>[
+        BottomNavigationBarItem(
+          icon: _buildAnimatedIcon(Icons.home, 0),
+          label: 'Progress Anak',
+        ),
+        BottomNavigationBarItem(
+          icon: _buildAnimatedIcon(Icons.person, 1),
+          label: 'Profil',
+        ),
+      ];
+    } else { // Santri
       return <BottomNavigationBarItem>[
         BottomNavigationBarItem(
           icon: _buildAnimatedIcon(Icons.home, 0),
@@ -778,6 +838,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         'totalJuz': 0,
         'juzTerakhir': '-',
         'persentase': 0.0,
+        'nilaiTerakhir': '-',
+        'statusLulus': '-',
       };
     }
     // Penilaian terakhir (setoran terbaru)
@@ -786,6 +848,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final ayatTerakhir = (last['dari_ayat'] != null && last['sampai_ayat'] != null)
         ? '${last['dari_ayat']}-${last['sampai_ayat']}'
         : '-';
+    final nilaiTerakhir = last['hasil_naive_bayes'] ?? '-';
+    final statusLulus = _isLulus(nilaiTerakhir) ? 'LULUS' : 'TIDAK LULUS';
+    
     // Asumsi: setiap penilaian punya field 'surat', dan juz bisa diambil dari nama surat
     // Untuk demo, kita asumsikan setiap 20 surat = 1 juz (bisa disesuaikan dengan mapping sebenarnya)
     final List<String> daftarSurat = [
@@ -825,7 +890,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
       'totalJuz': totalJuz,
       'juzTerakhir': juzTerakhir == 0 ? '-' : 'Juz $juzTerakhir',
       'persentase': persentase,
+      'nilaiTerakhir': nilaiTerakhir,
+      'statusLulus': statusLulus,
     };
+  }
+
+  bool _isLulus(dynamic hasilPrediksi) {
+    // KKM = 75
+    const kkm = 75;
+    try {
+      // Jika hasil prediksi adalah string numerik, konversi ke int
+      if (hasilPrediksi is String) {
+        final nilai = int.tryParse(hasilPrediksi);
+        return nilai != null && nilai >= kkm;
+      } else if (hasilPrediksi is int) {
+        return hasilPrediksi >= kkm;
+      } else if (hasilPrediksi is double) {
+        return hasilPrediksi >= kkm;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
   }
 }
 
@@ -906,6 +992,290 @@ class _PilihSantriUntukPenilaianState extends State<PilihSantriUntukPenilaian> {
           }).toList(),
         ),
       ],
+    );
+  }
+}
+
+// Widget baru untuk memilih santri dan melihat progres hafalan
+class PilihSantriUntukProgress extends StatefulWidget {
+  final String credential;
+  const PilihSantriUntukProgress({super.key, required this.credential});
+  
+  @override
+  State<PilihSantriUntukProgress> createState() => _PilihSantriUntukProgressState();
+}
+
+class _PilihSantriUntukProgressState extends State<PilihSantriUntukProgress> {
+  List<dynamic> _santriList = [];
+  bool _isLoading = true;
+  String? _selectedKodeSantri;
+  String? _selectedNamaSantri;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSantriList();
+  }
+
+  Future<void> _fetchSantriList() async {
+    final apiUrl = '${ApiConfig.baseUrl}/api/daftar_santri';
+    
+    print('=== Fetch Santri List (Progress) ===');
+    print('API URL: $apiUrl');
+    print('Base URL: ${ApiConfig.baseUrl}');
+    
+    try {
+      final response = await http.get(Uri.parse(apiUrl)).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Request timeout');
+        },
+      );
+      
+      print('Response status: ${response.statusCode}');
+      print('Response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print('Decoded santri list: $data');
+        setState(() {
+          _santriList = data;
+          _isLoading = false;
+        });
+      } else {
+        print('Error response: ${response.body}');
+        setState(() {
+          _isLoading = false;
+        });
+        // Tampilkan error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal memuat daftar santri (status: ${response.statusCode})'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error in _fetchSantriList (Progress): $e');
+      setState(() {
+        _isLoading = false;
+      });
+      // Tampilkan error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Tidak dapat terhubung ke server: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_selectedKodeSantri != null) {
+      return KemajuanHafalanScreen(kodeSantri: _selectedKodeSantri!);
+    }
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Card(
+            color: Colors.blue[50],
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  const Icon(Icons.trending_up, color: Colors.blue, size: 48),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Lihat Progress Hafalan Santri',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Pilih santri untuk melihat kemajuan hafalan mereka',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(
+              labelText: 'Pilih Santri',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.person_search),
+            ),
+            value: _selectedKodeSantri,
+            hint: const Text('Klik untuk memilih santri'),
+            onChanged: (String? newValue) {
+              setState(() {
+                _selectedKodeSantri = newValue;
+                // Cari nama santri berdasarkan kode yang dipilih
+                if (newValue != null) {
+                  final selectedSantri = _santriList.firstWhere(
+                    (santri) => santri['kode_santri'] == newValue,
+                    orElse: () => {'nama_lengkap': 'Unknown'},
+                  );
+                  _selectedNamaSantri = selectedSantri['nama_lengkap'];
+                } else {
+                  _selectedNamaSantri = null;
+                }
+              });
+            },
+            items: _santriList.map<DropdownMenuItem<String>>((santri) {
+              return DropdownMenuItem<String>(
+                value: santri['kode_santri'],
+                child: Text('${santri['nama_lengkap']} (${santri['kode_santri']})'),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 20),
+          if (_selectedKodeSantri != null) ...[
+            Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => OverviewSantriScreen(
+                                kodeSantri: _selectedKodeSantri!,
+                                namaSantri: _selectedNamaSantri ?? 'Unknown',
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.dashboard),
+                        label: const Text('Lihat Overview'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => SummaryHafalanScreen(
+                                kodeSantri: _selectedKodeSantri!,
+                                namaSantri: _selectedNamaSantri ?? 'Unknown',
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.analytics),
+                        label: const Text('Lihat Summary'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => KemajuanHafalanScreen(
+                                kodeSantri: _selectedKodeSantri!,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.trending_up),
+                        label: const Text('Lihat Progress'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.purple,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _selectedKodeSantri = null;
+                            _selectedNamaSantri = null;
+                          });
+                        },
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Pilih Santri Lain'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 20),
+          // Debug button untuk test connection
+          ElevatedButton.icon(
+            onPressed: () async {
+              print('=== Test Connection Button Pressed (Progress) ===');
+              try {
+                final url = Uri.parse('${ApiConfig.baseUrl}/api/test_connection');
+                print('Testing connection to: $url');
+                final response = await http.get(url);
+                print('Test response: ${response.statusCode} - ${response.body}');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Test result: ${response.statusCode} - ${response.body}'),
+                      backgroundColor: response.statusCode == 200 ? Colors.green : Colors.red,
+                    ),
+                  );
+                }
+              } catch (e) {
+                print('Test error: $e');
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Test error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.wifi_find),
+            label: const Text('Test Connection'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.grey,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
