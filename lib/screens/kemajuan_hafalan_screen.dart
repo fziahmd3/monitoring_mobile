@@ -32,7 +32,6 @@ class _KemajuanHafalanScreenState extends State<KemajuanHafalanScreen> {
   
   // Filter results
   List<dynamic> _filteredData = [];
-  bool _showFilter = false; // Toggle untuk menampilkan/menyembunyikan filter
 
   @override
   void initState() {
@@ -230,6 +229,24 @@ class _KemajuanHafalanScreenState extends State<KemajuanHafalanScreen> {
     }
   }
 
+  void _showFilterBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => FractionallySizedBox(
+        heightFactor: 0.9,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: SingleChildScrollView(
+            child: _buildFilterSection(),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final sortedRataRata = _rataRataNilai.entries.toList()
@@ -243,15 +260,8 @@ class _KemajuanHafalanScreenState extends State<KemajuanHafalanScreen> {
         backgroundColor: const Color.fromARGB(255, 26, 144, 11),
         actions: [
           IconButton(
-            icon: Icon(_showFilter ? Icons.filter_list_off : Icons.filter_list),
-            onPressed: () {
-              setState(() {
-                _showFilter = !_showFilter;
-                if (_showFilter) {
-                  _applyFilters();
-                }
-              });
-            },
+            icon: Icon(Icons.filter_list),
+            onPressed: _showFilterBottomSheet,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -272,7 +282,7 @@ class _KemajuanHafalanScreenState extends State<KemajuanHafalanScreen> {
                            crossAxisAlignment: CrossAxisAlignment.stretch,
                            children: [
                              // Filter Section (Collapsible)
-                             if (_showFilter) _buildFilterSection(),
+                             // Hapus: if (_showFilter) _buildFilterSection(),
                              
                              const Text(
                                'Rata-rata Nilai Akhir per Surat (Top 5)',

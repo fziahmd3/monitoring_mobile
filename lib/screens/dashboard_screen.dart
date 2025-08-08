@@ -798,6 +798,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         currentIndex: _selectedIndex,
         selectedItemColor: const Color.fromARGB(255, 26, 144, 11),
         selectedIconTheme: const IconThemeData(size: 30),
+        selectedLabelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        unselectedLabelStyle: const TextStyle(fontSize: 11),
+        type: BottomNavigationBarType.fixed, // Pastikan ukuran tetap
         onTap: _onItemTapped,
       ),
     );

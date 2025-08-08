@@ -1,6 +1,6 @@
 class ApiConfig {
   // Gunakan URL yang sesuai dengan server yang sedang berjalan
-  static String baseUrl = "https://underwear-irc-aus-cell.trycloudflare.com";
+  static String baseUrl = "https://generating-tracker-warranty-composer.trycloudflare.com";
   
   // Alternatif URL untuk development
   // static String baseUrl = "http://10.0.2.2:5000"; // Android Emulator

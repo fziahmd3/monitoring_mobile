@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:monitoring_hafalan_app/screens/dashboard_screen.dart'; // Import dashboard
+// import 'package:monitoring_hafalan_app/screens/dashboard_screen.dart'; // Tidak digunakan langsung
 import 'package:http/http.dart' as http; // Import http package
 import 'dart:convert'; // Import for JSON encoding/decoding
 import '../api_config.dart';
@@ -22,7 +22,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final List<String> _userTypes = [
     // 'Admin', // Aktifkan kembali Admin
     'Guru',
-    'Santri',
+    // 'Santri', // Sembunyikan sementara akun Santri
     'Orang Tua Santri',
   ];
 
@@ -33,8 +33,6 @@ class _LoginScreenState extends State<LoginScreen> {
       //   return 'Username'; // Label untuk Admin adalah Username
       case 'Guru':
         return 'Kode Guru';
-      case 'Santri':
-        return 'Kode Santri';
       case 'Orang Tua Santri':
         return 'Kode Orang Tua';
       default:
@@ -179,21 +177,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     borderRadius: BorderRadius.circular(8.0),
                   ),
                   prefixIcon: Icon(
-                    // _selectedUserType == 'Admin'
-                    //     ? Icons.person
-                    // _selectedUserType == 'Admin'
-                    //         ? Icons.person
                             _selectedUserType == 'Guru'
                                 ? Icons.school
-                                : _selectedUserType == 'Santri'
-                                    ? Icons.school
-                                    : Icons.group),
+                                : Icons.group),
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
-                keyboardType: (_selectedUserType == 'Guru' || _selectedUserType == 'Santri')
-                    ? TextInputType.text // NIP/NIS bisa angka
-                    : TextInputType.text, // Username/Nama bisa teks
+                keyboardType: TextInputType.text,
                 obscureText: false,
               ),
               // Hapus input password dari sini

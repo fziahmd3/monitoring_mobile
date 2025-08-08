@@ -452,12 +452,75 @@ class _ProfileScreenState extends State<ProfileScreen> {
               text: "Log Out",
               icon: "assets/icons/Log out.svg",
               press: () {
-                Navigator.pushReplacementNamed(context, '/');
+                _showLogoutConfirmation();
               },
             ),
           ],
         ),
       ),
+    );
+  }
+
+  void _showLogoutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.logout,
+                color: Colors.red,
+                size: 24,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Konfirmasi Log Out',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Apakah Anda yakin ingin keluar dari aplikasi?',
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(), // Cancel
+              child: const Text(
+                'Batal',
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.pushReplacementNamed(context, '/');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Ya, Keluar',
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
